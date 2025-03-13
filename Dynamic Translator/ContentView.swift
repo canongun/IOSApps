@@ -119,10 +119,13 @@ struct ContentView: View {
     }
     
     private func processAudio(audioData: Data) {
+        print("Audio data size: \(audioData.count) bytes")
+        
         // Step 1: Transcribe audio using Deepgram
         deepgramService.transcribeAudio(audioData: audioData) { result in
             switch result {
             case .success(let transcribedText):
+                print("Transcription successful: \(transcribedText)")
                 DispatchQueue.main.async {
                     self.transcribedText = transcribedText
                 }

@@ -13,7 +13,7 @@ class TranslationService {
         request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
         
         let requestBody: [String: Any] = [
-            "model": "claude-3-haiku-20240307",
+            "model": "claude-3-7-sonnet-20250219",
             "max_tokens": 1000,
             "messages": [
                 [
