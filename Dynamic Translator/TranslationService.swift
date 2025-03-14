@@ -8,13 +8,13 @@ class TranslationService {
         // Create URL request
         var request = URLRequest(url: URL(string: baseURL)!)
         request.httpMethod = "POST"
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue("application/json", forHTTPHeaderField: "content-type")
         request.setValue("2023-06-01", forHTTPHeaderField: "anthropic-version")
-        request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
+        request.setValue(apiKey, forHTTPHeaderField: "x-api-key")
         
         let requestBody: [String: Any] = [
             "model": "claude-3-7-sonnet-20250219",
-            "max_tokens": 1000,
+            "max_tokens": 1024,
             "messages": [
                 [
                     "role": "user",
@@ -37,6 +37,11 @@ class TranslationService {
                 return
             }
             
+            // Debug: Print HTTP response status code
+            if let httpResponse = response as? HTTPURLResponse {
+                print("HTTP response status: \(httpResponse.statusCode)")
+            }
+            
             guard let data = data else {
                 completion(.failure(NSError(domain: "TranslationService", code: 0, userInfo: [NSLocalizedDescriptionKey: "No data received"])))
                 return
@@ -50,20 +55,26 @@ class TranslationService {
             do {
                 // Parse the JSON response - updated to match Claude API structure
                 if let json = try JSONSerialization.jsonObject(with: data) as? [String: Any] {
-                    // Try different parsing approaches based on potential response structures
+                    // Check if it's an error response
+                    if let errorObj = json["error"] as? [String: Any],
+                       let errorMessage = errorObj["message"] as? String {
+                        let errorType = errorObj["type"] as? String ?? "unknown"
+                        completion(.failure(NSError(domain: "AnthropicAPI", 
+                                                  code: 2, 
+                                                  userInfo: [NSLocalizedDescriptionKey: "API Error (\(errorType)): \(errorMessage)"])))
+                        return
+                    }
+                    
+                    // Try to extract content based on Anthropic's response format
                     if let content = json["content"] as? [[String: Any]],
                        let firstContent = content.first,
                        let type = firstContent["type"] as? String,
                        type == "text",
                        let text = firstContent["text"] as? String {
                         completion(.success(text))
-                    } else if let content = json["content"] as? [String],
-                              let text = content.first {
-                        completion(.success(text))
-                    } else if let message = json["message"] as? String {
-                        completion(.success(message))
                     } else {
-                        completion(.failure(NSError(domain: "TranslationService", code: 1, userInfo: [NSLocalizedDescriptionKey: "Failed to parse response structure"])))
+                        print("Full response structure: \(json)")
+                        completion(.failure(NSError(domain: "TranslationService", code: 1, userInfo: [NSLocalizedDescriptionKey: "Could not extract translation from response"])))
                     }
                 } else {
                     completion(.failure(NSError(domain: "TranslationService", code: 1, userInfo: [NSLocalizedDescriptionKey: "Failed to parse JSON response"])))
