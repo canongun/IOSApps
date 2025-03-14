@@ -9,7 +9,7 @@ class TranslationService {
         var request = URLRequest(url: URL(string: baseURL)!)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.setValue("anthropic-version: 2023-06-01", forHTTPHeaderField: "anthropic-version")
+        request.setValue("2023-06-01", forHTTPHeaderField: "anthropic-version")
         request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
         
         let requestBody: [String: Any] = [
