@@ -4,11 +4,24 @@ import AVFoundation
 class ElevenLabsService {
     private let apiKey = Configuration.elevenLabsAPIKey // Safely referenced
     private let baseURL = "https://api.elevenlabs.io/v1/text-to-speech"
-    private let voiceID = "21m00Tcm4TlvDq8ikWAM" // Default voice ID (Rachel)
+    private var defaultVoiceID = "21m00Tcm4TlvDq8ikWAM" // Default voice ID (Rachel - English)
+    
+    // Voice ID mapping for different languages
+    static let voiceIDMap: [String: String] = [
+        "English": "21m00Tcm4TlvDq8ikWAM", // Rachel
+        "Spanish": "x5IDPSl4ZUbhosMmVFTk",
+        "French": "O31r762Gb3WFygrEOGh0",
+        "German": "dCnu06FiOZma2KVNUoPZ",
+        "Italian": "3DPhHWXDY263XJ1d2EPN",
+        "Turkish": "KbaseEXyT9EE0CQLEfbB"
+    ]
     
     private var audioPlayer: AVAudioPlayer?
     
-    func synthesizeSpeech(text: String, completion: @escaping (Result<Data, Error>) -> Void) {
+    func synthesizeSpeech(text: String, language: String = "English", completion: @escaping (Result<Data, Error>) -> Void) {
+        // Get the appropriate voice ID for the language
+        let voiceID = ElevenLabsService.voiceIDMap[language] ?? defaultVoiceID
+        
         // Create URL with voice ID
         guard let url = URL(string: "\(baseURL)/\(voiceID)") else {
             completion(.failure(NSError(domain: "ElevenLabsService", code: 0, userInfo: [NSLocalizedDescriptionKey: "Invalid URL"])))

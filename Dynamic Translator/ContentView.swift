@@ -11,7 +11,7 @@ import AVFoundation
 struct ContentView: View {
     @State private var isTranslating = false
     @State private var targetLanguage = "English"
-    @State private var availableLanguages = ["English", "Spanish", "French", "German", "Italian"]
+    @State private var availableLanguages = ["English", "Spanish", "French", "German", "Italian", "Turkish"]
     @State private var transcribedText = ""
     @State private var translatedText = ""
     @State private var isProcessing = false
@@ -139,7 +139,7 @@ struct ContentView: View {
                         }
                         
                         // Step 3: Convert translated text to speech using ElevenLabs
-                        elevenLabsService.synthesizeSpeech(text: translatedText) { result in
+                        elevenLabsService.synthesizeSpeech(text: translatedText, language: targetLanguage) { result in
                             DispatchQueue.main.async {
                                 self.isProcessing = false
                             }
