@@ -15,14 +15,31 @@ struct ContentView: View {
     @State private var transcribedText = ""
     @State private var translatedText = ""
     @State private var isProcessing = false
+    @State private var showingHistory = false
+    @State private var detectedLanguage = "Unknown"
     
     @StateObject private var audioRecorder = AudioRecorder()
+    @StateObject private var conversationHistory = ConversationHistory()
+    
     private let deepgramService = DeepgramService()
     private let translationService = TranslationService()
     private let elevenLabsService = ElevenLabsService()
     
     var body: some View {
         VStack {
+            // History button in the top right
+            HStack {
+                Spacer()
+                Button(action: {
+                    showingHistory = true
+                }) {
+                    Image(systemName: "clock.arrow.circlepath")
+                        .font(.system(size: 22))
+                        .foregroundColor(.blue)
+                        .padding()
+                }
+            }
+            
             Spacer()
             
             if isProcessing {
@@ -36,6 +53,13 @@ struct ContentView: View {
                     .padding()
                     .background(Color.gray.opacity(0.1))
                     .cornerRadius(10)
+                    .padding(.horizontal)
+                
+                if detectedLanguage != "Unknown" {
+                    Text("Detected language: \(detectedLanguage)")
+                        .font(.caption)
+                        .foregroundColor(.gray)
+                }
             }
             
             if !translatedText.isEmpty {
@@ -43,6 +67,7 @@ struct ContentView: View {
                     .padding()
                     .background(Color.blue.opacity(0.1))
                     .cornerRadius(10)
+                    .padding(.horizontal)
             }
             
             Spacer()
@@ -90,6 +115,9 @@ struct ContentView: View {
             .disabled(isTranslating || isProcessing)
         }
         .padding()
+        .sheet(isPresented: $showingHistory) {
+            HistoryView(conversationHistory: conversationHistory)
+        }
         .onAppear {
             requestMicrophonePermission()
         }
@@ -124,18 +152,35 @@ struct ContentView: View {
         // Step 1: Transcribe audio using Deepgram
         deepgramService.transcribeAudio(audioData: audioData) { result in
             switch result {
-            case .success(let transcribedText):
-                print("Transcription successful: \(transcribedText)")
+            case .success(let transcriptionResult):
+                print("Transcription successful: \(transcriptionResult.text)")
+                
+                // Update detected language from transcription metadata
+                if let metadata = transcriptionResult.metadata,
+                   let detectedLanguageCode = metadata.detectedLanguage {
+                    DispatchQueue.main.async {
+                        self.detectedLanguage = self.languageCodeToName(detectedLanguageCode)
+                    }
+                }
+                
                 DispatchQueue.main.async {
-                    self.transcribedText = transcribedText
+                    self.transcribedText = transcriptionResult.text
                 }
                 
                 // Step 2: Translate the transcribed text
-                translationService.translateText(text: transcribedText, targetLanguage: targetLanguage) { result in
+                translationService.translateText(text: transcriptionResult.text, targetLanguage: targetLanguage) { result in
                     switch result {
                     case .success(let translatedText):
                         DispatchQueue.main.async {
                             self.translatedText = translatedText
+                            
+                            // Save to conversation history
+                            self.conversationHistory.addEntry(
+                                originalText: self.transcribedText,
+                                translatedText: translatedText,
+                                sourceLanguage: self.detectedLanguage,
+                                targetLanguage: self.targetLanguage
+                            )
                         }
                         
                         // Step 3: Convert translated text to speech using ElevenLabs
@@ -167,6 +212,21 @@ struct ContentView: View {
                 print("Transcription error: \(error.localizedDescription)")
             }
         }
+    }
+    
+    // Helper function to convert language codes to human-readable names
+    private func languageCodeToName(_ code: String) -> String {
+        let languageMap = [
+            "en": "English",
+            "es": "Spanish",
+            "fr": "French",
+            "de": "German",
+            "it": "Italian",
+            "tr": "Turkish",
+            // Add more languages as needed
+        ]
+        
+        return languageMap[code.lowercased()] ?? code
     }
 }
 

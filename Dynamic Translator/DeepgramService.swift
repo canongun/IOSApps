@@ -1,10 +1,22 @@
 import Foundation
 
+// Add a struct to hold transcription metadata
+struct TranscriptionMetadata {
+    let detectedLanguage: String?
+    let confidence: Double?
+}
+
+// Add a struct to hold transcription result with metadata
+struct TranscriptionResult {
+    let text: String
+    let metadata: TranscriptionMetadata?
+}
+
 class DeepgramService {
     private let apiKey = Configuration.deepgramAPIKey // Now safely referenced
     private let baseURL = "https://api.deepgram.com/v1/listen"
     
-    func transcribeAudio(audioData: Data, completion: @escaping (Result<String, Error>) -> Void) {
+    func transcribeAudio(audioData: Data, completion: @escaping (Result<TranscriptionResult, Error>) -> Void) {
         // Create URL with query parameters for language detection
         let urlString = "\(baseURL)?model=nova-2&detect_language=true"
         
@@ -45,13 +57,21 @@ class DeepgramService {
                    let alternatives = channels[0]["alternatives"] as? [[String: Any]],
                    let transcript = alternatives[0]["transcript"] as? String {
                     
+                    // Extract metadata
+                    var metadata: TranscriptionMetadata? = nil
+                    
                     // Check if language was detected
-                    if let metadata = results["metadata"] as? [String: Any],
-                       let detected_language = metadata["detected_language"] as? String {
-                        print("Detected language: \(detected_language)")
+                    if let detectedLanguage = channels[0]["detected_language"] as? String,
+                       let languageConfidence = channels[0]["language_confidence"] as? Double {
+                        metadata = TranscriptionMetadata(
+                            detectedLanguage: detectedLanguage,
+                            confidence: languageConfidence
+                        )
+                        print("Detected language: \(detectedLanguage) (confidence: \(languageConfidence))")
                     }
                     
-                    completion(.success(transcript))
+                    let result = TranscriptionResult(text: transcript, metadata: metadata)
+                    completion(.success(result))
                 } else {
                     completion(.failure(NSError(domain: "DeepgramService", code: 1, userInfo: [NSLocalizedDescriptionKey: "Failed to parse response"])))
                 }
