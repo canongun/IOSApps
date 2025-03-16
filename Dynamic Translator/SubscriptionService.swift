@@ -3,9 +3,9 @@ import StoreKit
 
 class SubscriptionService: ObservableObject {
     // Product IDs - these would match what you set in App Store Connect
-    static let basicMonthlyID = "com.yourapp.subscription.basic.monthly"
-    static let proMonthlyID = "com.yourapp.subscription.pro.monthly"
-    static let creditsPackID = "com.yourapp.credits.standard"
+    static let basicMonthlyID = "com.VoiceLink.subscription.basic.monthly"
+    static let proMonthlyID = "com.VoiceLink.subscription.pro.monthly"
+    static let creditsPackID = "com.VoiceLink.credits.standard"
     
     // Amount of minutes in credit pack
     static let creditPackMinutes = 15.0
