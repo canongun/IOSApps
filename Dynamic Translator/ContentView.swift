@@ -20,6 +20,10 @@ struct ContentView: View {
     
     @StateObject private var audioRecorder = AudioRecorder()
     @StateObject private var conversationHistory = ConversationHistory()
+    @StateObject private var usageManager = UsageTimeManager()
+    @StateObject private var subscriptionService = SubscriptionService()
+    @State private var showingSubscriptionView = false
+    @State private var showingLimitAlert = false
     
     private let deepgramService = DeepgramService()
     private let translationService = TranslationService()
@@ -27,9 +31,26 @@ struct ContentView: View {
     
     var body: some View {
         VStack {
-            // History button in the top right
+            // Add usage indicator at the top
             HStack {
+                // Subscription/time remaining button
+                Button(action: {
+                    showingSubscriptionView = true
+                }) {
+                    HStack {
+                        Image(systemName: "timer")
+                        Text(usageManager.formattedRemainingTime())
+                            .fontWeight(.medium)
+                    }
+                    .foregroundColor(.blue)
+                    .padding(8)
+                    .background(Color.blue.opacity(0.1))
+                    .cornerRadius(8)
+                }
+                
                 Spacer()
+                
+                // Existing history button
                 Button(action: {
                     showingHistory = true
                 }) {
@@ -77,7 +98,14 @@ struct ContentView: View {
                 if isTranslating {
                     stopTranslating()
                 } else {
-                    startTranslating()
+                    // Check if user has available time before starting
+                    if usageManager.canMakeTranslation() {
+                        if usageManager.startTranslation() {
+                            startTranslating()
+                        }
+                    } else {
+                        showingLimitAlert = true
+                    }
                 }
             }) {
                 Circle()
@@ -118,6 +146,20 @@ struct ContentView: View {
         .sheet(isPresented: $showingHistory) {
             HistoryView(conversationHistory: conversationHistory)
         }
+        .sheet(isPresented: $showingSubscriptionView) {
+            SubscriptionView(
+                usageManager: usageManager,
+                subscriptionService: subscriptionService
+            )
+        }
+        .alert("Translation Time Limit Reached", isPresented: $showingLimitAlert) {
+            Button("Get More Time", role: .none) {
+                showingSubscriptionView = true
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("You've used all your available translation time. Subscribe or purchase more minutes to continue.")
+        }
         .onAppear {
             requestMicrophonePermission()
         }
@@ -144,6 +186,8 @@ struct ContentView: View {
             isProcessing = true
             processAudio(audioData: audioData)
         }
+        
+        // We'll calculate time usage after successful processing
     }
     
     private func processAudio(audioData: Data) {
@@ -195,6 +239,12 @@ struct ContentView: View {
                             case .failure(let error):
                                 print("Speech synthesis error: \(error.localizedDescription)")
                             }
+                        }
+                        
+                        // After successful translation, in the success case of the final step:
+                        if let timeUsed = self.usageManager.stopTranslation() {
+                            // Only confirm usage after successful processing
+                            self.usageManager.confirmUsage(minutes: timeUsed)
                         }
                         
                     case .failure(let error):
