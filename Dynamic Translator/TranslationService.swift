@@ -13,7 +13,7 @@ class TranslationService {
         request.setValue(apiKey, forHTTPHeaderField: "x-api-key")
         
         let requestBody: [String: Any] = [
-            "model": "claude-3-7-sonnet-20250219",
+            "model": "claude-3-5-haiku-20241022",
             "max_tokens": 1024,
             "messages": [
                 [
