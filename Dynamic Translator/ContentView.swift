@@ -241,10 +241,12 @@ struct ContentView: View {
                             }
                         }
                         
-                        // After successful translation, in the success case of the final step:
-                        if let timeUsed = self.usageManager.stopTranslation() {
-                            // Only confirm usage after successful processing
-                            self.usageManager.confirmUsage(minutes: timeUsed)
+                        // After successful translation, dispatch to main thread:
+                        DispatchQueue.main.async {
+                            if let timeUsed = self.usageManager.stopTranslation() {
+                                // Only confirm usage after successful processing
+                                self.usageManager.confirmUsage(minutes: timeUsed)
+                            }
                         }
                         
                     case .failure(let error):

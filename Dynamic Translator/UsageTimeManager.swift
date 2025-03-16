@@ -106,17 +106,19 @@ class UsageTimeManager: ObservableObject {
     
     // Confirm usage of time (call after successful translation)
     func confirmUsage(minutes: Double) {
-        // First use additional credits if available
-        let minutesToDeduct = min(minutes, max(0, remainingMinutes))
-        remainingMinutes -= minutesToDeduct
-        
-        // Use credits for any remaining time
-        if minutes > minutesToDeduct && additionalCreditMinutes > 0 {
-            let creditMinutesToUse = min(minutes - minutesToDeduct, additionalCreditMinutes)
-            additionalCreditMinutes -= creditMinutesToUse
+        DispatchQueue.main.async {
+            // First use additional credits if available
+            let minutesToDeduct = min(minutes, max(0, self.remainingMinutes))
+            self.remainingMinutes -= minutesToDeduct
+            
+            // Use credits for any remaining time
+            if minutes > minutesToDeduct && self.additionalCreditMinutes > 0 {
+                let creditMinutesToUse = min(minutes - minutesToDeduct, self.additionalCreditMinutes)
+                self.additionalCreditMinutes -= creditMinutesToUse
+            }
+            
+            self.saveUsage()
         }
-        
-        saveUsage()
     }
     
     // Check if user can make a translation
