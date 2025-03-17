@@ -36,8 +36,12 @@ struct Dynamic_TranslatorApp: App {
                     // This is a verified transaction
                     print("Received verified transaction: \(transaction.productID)")
                     
-                    // Process the transaction with our subscription service
-                    await subscriptionService.handleTransaction(transaction, usageManager: usageManager)
+                    // Create a local reference to avoid property wrapper confusion
+                    let service = subscriptionService
+                    let manager = usageManager
+                    
+                    // Process the transaction
+                    await service.handleTransaction(transaction, usageManager: manager)
                     
                     // Always finish the transaction when you're done with it
                     await transaction.finish()

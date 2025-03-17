@@ -72,21 +72,21 @@ class SubscriptionService: ObservableObject {
     }
     
     @MainActor
-    private func handleTransaction(_ transaction: Transaction, usageManager: UsageTimeManager) async {
+    func handleTransaction(_ transaction: Transaction, usageManager: UsageTimeManager) async {
         // Process based on product type
         switch transaction.productID {
-        case SubscriptionService.basicMonthlyID:
+        case Self.basicMonthlyID:
             // Calculate expiry date (typically 1 month from now)
             let expiryDate = transaction.expirationDate ?? Calendar.current.date(byAdding: .month, value: 1, to: Date())!
             usageManager.updateSubscription(to: .basic, expiryDate: expiryDate)
             
-        case SubscriptionService.proMonthlyID:
+        case Self.proMonthlyID:
             let expiryDate = transaction.expirationDate ?? Calendar.current.date(byAdding: .month, value: 1, to: Date())!
             usageManager.updateSubscription(to: .pro, expiryDate: expiryDate)
             
-        case SubscriptionService.creditsPackID:
+        case Self.creditsPackID:
             // Add credit minutes
-            usageManager.addCreditMinutes(SubscriptionService.creditPackMinutes)
+            usageManager.addCreditMinutes(Self.creditPackMinutes)
             
         default:
             break
