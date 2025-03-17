@@ -181,7 +181,7 @@ class UsageTimeManager: ObservableObject {
     
     // Check if we need to reset monthly allowance
     private func checkForMonthlyReset() {
-        guard subscriptionTier != .free, let expiryDate = subscriptionExpiryDate else {
+        guard subscriptionTier != .free, let _ = subscriptionExpiryDate else {
             return
         }
         
