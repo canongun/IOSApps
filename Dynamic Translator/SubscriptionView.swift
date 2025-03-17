@@ -59,15 +59,47 @@ struct SubscriptionView: View {
                             .padding()
                     } else {
                         // Subscription plans
-                        ForEach(subscriptionService.products, id: \.id) { product in
-                            SubscriptionPlanCard(
-                                product: product,
-                                currentTier: usageManager.subscriptionTier,
-                                isPurchasing: isPurchasing
-                            ) {
-                                await purchaseProduct(product)
+                        VStack(spacing: 16) {
+                            // Filter for subscription products
+                            let subscriptionProducts = subscriptionService.products.filter { 
+                                $0.id != SubscriptionService.creditsPackID 
                             }
-                            .padding(.horizontal)
+                            
+                            ForEach(subscriptionProducts, id: \.id) { product in
+                                SubscriptionPlanCard(
+                                    product: product,
+                                    currentTier: usageManager.subscriptionTier,
+                                    isPurchasing: isPurchasing,
+                                    isPrimary: true
+                                ) {
+                                    await purchaseProduct(product)
+                                }
+                                .padding(.horizontal)
+                            }
+                            
+                            // Divider between subscription and pay-as-you-go
+                            if let creditProduct = subscriptionService.products.first(where: { 
+                                $0.id == SubscriptionService.creditsPackID 
+                            }) {
+                                Divider()
+                                    .padding(.vertical, 10)
+                                
+                                Text("One-time Purchase")
+                                    .font(.headline)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                    .padding(.horizontal)
+                                    .padding(.top, 10)
+                                
+                                SubscriptionPlanCard(
+                                    product: creditProduct,
+                                    currentTier: usageManager.subscriptionTier,
+                                    isPurchasing: isPurchasing,
+                                    isPrimary: false
+                                ) {
+                                    await purchaseProduct(creditProduct)
+                                }
+                                .padding(.horizontal)
+                            }
                         }
                     }
                 }
@@ -112,6 +144,7 @@ struct SubscriptionPlanCard: View {
     let product: Product
     let currentTier: SubscriptionTier
     let isPurchasing: Bool
+    let isPrimary: Bool
     let purchase: () async -> Void
     
     var isCurrentSubscription: Bool {
@@ -142,6 +175,17 @@ struct SubscriptionPlanCard: View {
         }
     }
     
+    var marketingDescription: String {
+        if product.id.contains("basic") {
+            return "Perfect for casual users. Great for travel and occasional translations."
+        } else if product.id.contains("pro") {
+            return "Best for frequent users. Ideal for students, and travelers who need more translation time."
+        } else if product.id.contains("credits") {
+            return "Need a quick boost? Purchase translation minutes without a subscription."
+        }
+        return product.description
+    }
+    
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
@@ -166,9 +210,10 @@ struct SubscriptionPlanCard: View {
                 .fontWeight(.bold)
                 .foregroundColor(.blue)
             
-            Text(product.description)
+            Text(marketingDescription)
                 .font(.subheadline)
                 .foregroundColor(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
             
             Text(planType)
                 .font(.caption)
@@ -203,7 +248,15 @@ struct SubscriptionPlanCard: View {
             }
         }
         .padding()
-        .background(Color.gray.opacity(0.1))
+        .background(
+            isPrimary ? 
+                (Color.blue.opacity(0.08)) : 
+                (Color.gray.opacity(0.1))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: 12)
+                .stroke(isPrimary ? Color.blue.opacity(0.2) : Color.clear, lineWidth: 1)
+        )
         .cornerRadius(12)
     }
     

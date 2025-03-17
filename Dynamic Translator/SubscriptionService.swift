@@ -32,7 +32,20 @@ class SubscriptionService: ObservableObject {
                 SubscriptionService.creditsPackID
             ]
             
-            products = try await Product.products(for: productIDs)
+            let allProducts = try await Product.products(for: productIDs)
+            
+            // Sort products: Basic first, Pro second, Pay-as-you-go last
+            products = allProducts.sorted { product1, product2 in
+                if product1.id == SubscriptionService.creditsPackID {
+                    return false // Credits pack goes last
+                } else if product2.id == SubscriptionService.creditsPackID {
+                    return true // Other product goes before credits pack
+                } else if product1.id == SubscriptionService.basicMonthlyID {
+                    return true // Basic plan first
+                } else {
+                    return false // Pro plan second
+                }
+            }
         } catch {
             self.error = error.localizedDescription
             print("Failed to load products: \(error)")
