@@ -9,7 +9,7 @@
       }
     ]
   },
-  "identifier" : "20C33F96",
+  "identifier" : "3F5E08F8",
   "nonRenewingSubscriptions" : [
 
   ],
@@ -17,7 +17,7 @@
     {
       "displayPrice" : "2.99",
       "familyShareable" : false,
-      "internalID" : "3DC55DC9",
+      "internalID" : "6743437019",
       "localizations" : [
         {
           "description" : "15 minutes of translation",
@@ -31,7 +31,12 @@
     }
   ],
   "settings" : {
+    "_applicationInternalID" : "6743415544",
+    "_developerTeamID" : "UB2UJV3T7Q",
     "_failTransactionsEnabled" : false,
+    "_lastSynchronizedDate" : 763988117.506374,
+    "_locale" : "en_US",
+    "_storefront" : "USA",
     "_storeKitErrors" : [
       {
         "current" : null,
@@ -82,7 +87,7 @@
   },
   "subscriptionGroups" : [
     {
-      "id" : "18F2601C",
+      "id" : "21651882",
       "localizations" : [
 
       ],
@@ -98,7 +103,7 @@
           "displayPrice" : "2.99",
           "familyShareable" : false,
           "groupNumber" : 1,
-          "internalID" : "D010C626",
+          "internalID" : "6743436667",
           "introductoryOffer" : null,
           "localizations" : [
             {
@@ -110,7 +115,7 @@
           "productID" : "com.VoiceLink.subscription.basic.monthly",
           "recurringSubscriptionPeriod" : "P1M",
           "referenceName" : "Basic",
-          "subscriptionGroupID" : "18F2601C",
+          "subscriptionGroupID" : "21651882",
           "type" : "RecurringSubscription",
           "winbackOffers" : [
 
@@ -125,8 +130,8 @@
           ],
           "displayPrice" : "5.99",
           "familyShareable" : false,
-          "groupNumber" : 1,
-          "internalID" : "96B465DB",
+          "groupNumber" : 2,
+          "internalID" : "6743436846",
           "introductoryOffer" : null,
           "localizations" : [
             {
@@ -138,7 +143,7 @@
           "productID" : "com.VoiceLink.subscription.pro.monthly",
           "recurringSubscriptionPeriod" : "P1M",
           "referenceName" : "Pro",
-          "subscriptionGroupID" : "18F2601C",
+          "subscriptionGroupID" : "21651882",
           "type" : "RecurringSubscription",
           "winbackOffers" : [
 

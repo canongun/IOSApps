@@ -6,6 +6,11 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		36B9D52D2D898519009A7610 /* StoreKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 36B9D52C2D898519009A7610 /* StoreKit.framework */; };
+		36B9D5312D89888F009A7610 /* LinkVoice: AI Voice Translator.storekit in Resources */ = {isa = PBXBuildFile; fileRef = 36B9D5302D89888F009A7610 /* LinkVoice: AI Voice Translator.storekit */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
 		36A13AD42D8383A800041A14 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -27,6 +32,8 @@
 		36A13AC32D8383A400041A14 /* Dynamic Translator.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Dynamic Translator.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		36A13AD32D8383A800041A14 /* Dynamic TranslatorTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Dynamic TranslatorTests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
 		36A13ADD2D8383A800041A14 /* Dynamic TranslatorUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Dynamic TranslatorUITests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
+		36B9D52C2D898519009A7610 /* StoreKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = StoreKit.framework; path = System/Library/Frameworks/StoreKit.framework; sourceTree = SDKROOT; };
+		36B9D5302D89888F009A7610 /* LinkVoice: AI Voice Translator.storekit */ = {isa = PBXFileReference; lastKnownFileType = text; path = "LinkVoice: AI Voice Translator.storekit"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -52,6 +59,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				36B9D52D2D898519009A7610 /* StoreKit.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -75,9 +83,11 @@
 		36A13ABA2D8383A400041A14 = {
 			isa = PBXGroup;
 			children = (
+				36B9D5302D89888F009A7610 /* LinkVoice: AI Voice Translator.storekit */,
 				36A13AC52D8383A400041A14 /* Dynamic Translator */,
 				36A13AD62D8383A800041A14 /* Dynamic TranslatorTests */,
 				36A13AE02D8383A800041A14 /* Dynamic TranslatorUITests */,
+				36B9D52B2D898519009A7610 /* Frameworks */,
 				36A13AC42D8383A400041A14 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -90,6 +100,14 @@
 				36A13ADD2D8383A800041A14 /* Dynamic TranslatorUITests.xctest */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		36B9D52B2D898519009A7610 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				36B9D52C2D898519009A7610 /* StoreKit.framework */,
+			);
+			name = Frameworks;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -212,6 +230,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				36B9D5312D89888F009A7610 /* LinkVoice: AI Voice Translator.storekit in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -401,6 +420,7 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = LinkVoice;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "We need access to your microphone to translate your speech.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
@@ -434,6 +454,7 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = LinkVoice;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "We need access to your microphone to translate your speech.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
