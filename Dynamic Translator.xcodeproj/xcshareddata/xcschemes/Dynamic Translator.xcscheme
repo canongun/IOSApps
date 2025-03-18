@@ -74,9 +74,6 @@
             ReferencedContainer = "container:Dynamic Translator.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
-      <StoreKitConfigurationFileReference
-         identifier = "../../Dynamic Translator/LinkVoice: AI Voice Translator.storekit">
-      </StoreKitConfigurationFileReference>
    </LaunchAction>
    <ProfileAction
       buildConfiguration = "Release"
