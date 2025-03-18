@@ -75,7 +75,7 @@
          </BuildableReference>
       </BuildableProductRunnable>
       <StoreKitConfigurationFileReference
-         identifier = "../../LinkVoice: AI Voice Translator.storekit">
+         identifier = "../../Dynamic Translator/LinkVoice: AI Voice Translator.storekit">
       </StoreKitConfigurationFileReference>
    </LaunchAction>
    <ProfileAction
