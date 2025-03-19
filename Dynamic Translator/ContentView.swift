@@ -218,11 +218,11 @@ struct ContentView: View {
             forName: .AVPlayerItemDidPlayToEndTime,
             object: videoPlayer?.currentItem,
             queue: .main
-        ) { [weak self] _ in
+        ) { _ in
             // Loop the video if we're still recording
-            if self?.isTranslating == true {
-                self?.videoPlayer?.seek(to: .zero)
-                self?.videoPlayer?.play()
+            if self.isTranslating {
+                self.videoPlayer?.seek(to: .zero)
+                self.videoPlayer?.play()
             }
         }
     }
