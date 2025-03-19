@@ -33,6 +33,8 @@ struct ContentView: View {
     @State private var videoPlayer: AVPlayer?
     @State private var isVideoPlaying = false
     
+    @State private var scale: CGFloat = 1.0
+    
     var body: some View {
         VStack {
             // Add usage indicator at the top
@@ -117,26 +119,16 @@ struct ContentView: View {
                     }
                 }) {
                     ZStack {
+                        // Background circle
                         Circle()
-                            .strokeBorder(isTranslating ? Color.red : Color.blue, lineWidth:3)
+                            .strokeBorder(isTranslating ? Color.red : Color.blue, lineWidth: 3)
                             .frame(width: 200, height: 200)
                         
-                        if let player = videoPlayer, isVideoPlaying {
-                            VideoPlayer(player: player)
-                                .disabled(true) // Prevents video player controls from showing
-                                .frame(width: 199, height: 199)
-                                .clipShape(Circle())
-                                .contentShape(Circle())
-                                .aspectRatio(contentMode: .fill) // This ensures the video fills the frame
-                                .onDisappear {
-                                    stopVideo()
-                                }
-                        } else {
-                            // Fallback to static icon if video isn't playing
-                            Image(systemName: isTranslating ? "mic.fill" : "mic")
-                                .font(.system(size: 80))
-                                .foregroundColor(.white)
-                        }
+                        // Microphone icon
+                        Image(systemName: isTranslating ? "mic.fill" : "mic")
+                            .font(.system(size: 80))
+                            .foregroundColor(isTranslating ? .red : .blue)
+                            .scaleEffect(scale)
                     }
                 }
                 .padding(.bottom, 8)
@@ -147,6 +139,18 @@ struct ContentView: View {
                     .font(.headline)
                     .foregroundColor(isTranslating ? .red : .blue)
                     .padding(.bottom, 10)
+            }
+            .onChange(of: isTranslating) { isRecording in
+                if isRecording {
+                    // Create a pulsing animation
+                    withAnimation(.easeInOut(duration: 0.8).repeatForever(autoreverses: true)) {
+                        scale = 1.2
+                    }
+                } else {
+                    withAnimation {
+                        scale = 1.0
+                    }
+                }
             }
             
             Spacer()
