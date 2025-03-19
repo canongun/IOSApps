@@ -206,8 +206,11 @@ struct ContentView: View {
     }
     
     private func setupVideoPlayer() {
-        if let videoURL = Bundle.main.url(forResource: "Dynamic_Translator_Button_Animation", withExtension: "", subdirectory: "Videos.xcassets"){
+        if let videoURL = Bundle.main.url(forResource: "Dynamic_Translator_Button_Animation", withExtension: "mp4") {
+            print("Found video at: \(videoURL.absoluteString)")
             videoPlayer = AVPlayer(url: videoURL)
+        } else {
+            print("Failed to find video file")
         }
         
         // Set up notification for when video playback ends
@@ -225,8 +228,19 @@ struct ContentView: View {
     }
     
     private func startVideo() {
+        print("Starting video playback")
         videoPlayer?.seek(to: .zero)
         videoPlayer?.play()
+        
+        // Check what's happening
+        if videoPlayer == nil {
+            print("Error: videoPlayer is nil")
+        } else if videoPlayer?.currentItem == nil {
+            print("Error: player item is nil")
+        } else {
+            print("Video should be playing")
+        }
+        
         isVideoPlaying = true
     }
     
