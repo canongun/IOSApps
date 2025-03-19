@@ -7,6 +7,7 @@
 
 import SwiftUI
 import AVFoundation
+import AVKit
 
 struct ContentView: View {
     @State private var isTranslating = false
@@ -28,6 +29,9 @@ struct ContentView: View {
     private let deepgramService = DeepgramService()
     private let translationService = TranslationService()
     private let elevenLabsService = ElevenLabsService()
+    
+    @State private var videoPlayer: AVPlayer?
+    @State private var isVideoPlaying = false
     
     var body: some View {
         VStack {
@@ -93,32 +97,57 @@ struct ContentView: View {
             
             Spacer()
             
-            // Main translation button
-            Button(action: {
-                if isTranslating {
-                    stopTranslating()
-                } else {
-                    // Check if user has available time before starting
-                    if usageManager.canMakeTranslation() {
-                        if usageManager.startTranslation() {
-                            startTranslating()
-                        }
+            // Replace your current button with this new implementation
+            VStack {
+                // Main translation button
+                Button(action: {
+                    if isTranslating {
+                        stopTranslating()
+                        stopVideo()
                     } else {
-                        showingLimitAlert = true
+                        // Check if user has available time before starting
+                        if usageManager.canMakeTranslation() {
+                            if usageManager.startTranslation() {
+                                startTranslating()
+                                startVideo()
+                            }
+                        } else {
+                            showingLimitAlert = true
+                        }
+                    }
+                }) {
+                    ZStack {
+                        Circle()
+                            .fill(isTranslating ? Color.red : Color.blue)
+                            .frame(width: 200, height: 200)
+                        
+                        if let player = videoPlayer, isVideoPlaying {
+                            VideoPlayer(player: player)
+                                .disabled(true) // Prevents video player controls from showing
+                                .frame(width: 140, height: 140)
+                                .clipShape(Circle())
+                                .contentShape(Circle())
+                                .aspectRatio(contentMode: .fill) // This ensures the video fills the frame
+                                .onDisappear {
+                                    stopVideo()
+                                }
+                        } else {
+                            // Fallback to static icon if video isn't playing
+                            Image(systemName: isTranslating ? "mic.fill" : "mic")
+                                .font(.system(size: 80))
+                                .foregroundColor(.white)
+                        }
                     }
                 }
-            }) {
-                Circle()
-                    .fill(isTranslating ? Color.red : Color.blue)
-                    .frame(width: 200, height: 200)
-                    .overlay(
-                        Image(systemName: isTranslating ? "mic.fill" : "mic")
-                            .font(.system(size: 80))
-                            .foregroundColor(.white)
-                    )
+                .padding(.bottom, 8)
+                .disabled(isProcessing)
+                
+                // Text label below the button
+                Text(isTranslating ? "Tap to Translate" : "Tap to Speak")
+                    .font(.headline)
+                    .foregroundColor(isTranslating ? .red : .blue)
+                    .padding(.bottom, 10)
             }
-            .padding(.bottom, 50)
-            .disabled(isProcessing)
             
             Spacer()
             
@@ -161,6 +190,8 @@ struct ContentView: View {
             Text("You've used all your available translation time. Subscribe or purchase more minutes to continue.")
         }
         .onAppear {
+            // Set up the video player when the view appears
+            setupVideoPlayer()
             requestMicrophonePermission()
         }
     }
@@ -171,6 +202,41 @@ struct ContentView: View {
                 print("Microphone permission denied")
             }
         }
+    }
+    
+    private func setupVideoPlayer() {
+        // Replace "dynamic_translator_button_animation" with your actual video filename (without extension)
+        guard let url = Bundle.main.url(forResource: "dynamic_translator_button_animation", withExtension: "mov") else {
+            print("Failed to find video file")
+            return
+        }
+        
+        videoPlayer = AVPlayer(url: url)
+        
+        // Set up notification for when video playback ends
+        NotificationCenter.default.addObserver(
+            forName: .AVPlayerItemDidPlayToEndTime,
+            object: videoPlayer?.currentItem,
+            queue: .main
+        ) { [weak self] _ in
+            // Loop the video if we're still recording
+            if self?.isTranslating == true {
+                self?.videoPlayer?.seek(to: .zero)
+                self?.videoPlayer?.play()
+            }
+        }
+    }
+    
+    private func startVideo() {
+        videoPlayer?.seek(to: .zero)
+        videoPlayer?.play()
+        isVideoPlaying = true
+    }
+    
+    private func stopVideo() {
+        videoPlayer?.pause()
+        videoPlayer?.seek(to: .zero)
+        isVideoPlaying = false
     }
     
     private func startTranslating() {
