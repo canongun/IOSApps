@@ -118,7 +118,6 @@ struct ContentView: View {
                 }) {
                     ZStack {
                         Circle()
-//                            .fill(isTranslating ? Color.red : Color.blue)
                             .strokeBorder(isTranslating ? Color.red : Color.blue, lineWidth:3)
                             .frame(width: 200, height: 200)
                         
@@ -210,7 +209,7 @@ struct ContentView: View {
         print("Attempting to load video file...")
         
         // Try to find it as a named resource
-        if let path = Bundle.main.path(forResource: "Dynamic_Translator_Button_Animation", withExtension: "mp4") {
+        if let path = Bundle.main.path(forResource: "Dynamic_Translator_Button_Animation", ofType: "mp4") {
             let url = URL(fileURLWithPath: path)
             print("Found video at path: \(url.absoluteString)")
             videoPlayer = AVPlayer(url: url)
