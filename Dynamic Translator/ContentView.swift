@@ -118,13 +118,14 @@ struct ContentView: View {
                 }) {
                     ZStack {
                         Circle()
-                            .fill(isTranslating ? Color.red : Color.blue)
+//                            .fill(isTranslating ? Color.red : Color.blue)
+                            .strokeBorder(isTranslating ? Color.red : Color.blue, lineWidth:3)
                             .frame(width: 200, height: 200)
                         
                         if let player = videoPlayer, isVideoPlaying {
                             VideoPlayer(player: player)
                                 .disabled(true) // Prevents video player controls from showing
-                                .frame(width: 140, height: 140)
+                                .frame(width: 199, height: 199)
                                 .clipShape(Circle())
                                 .contentShape(Circle())
                                 .aspectRatio(contentMode: .fill) // This ensures the video fills the frame
@@ -205,13 +206,9 @@ struct ContentView: View {
     }
     
     private func setupVideoPlayer() {
-        // Replace "dynamic_translator_button_animation" with your actual video filename (without extension)
-        guard let url = Bundle.main.url(forResource: "dynamic_translator_button_animation", withExtension: "mov") else {
-            print("Failed to find video file")
-            return
+        if let videoURL = Bundle.main.url(forResource: "Dynamic_Translator_Button_Animation", withExtension: "", subdirectory: "Videos.xcassets"){
+            videoPlayer = AVPlayer(url: videoURL)
         }
-        
-        videoPlayer = AVPlayer(url: url)
         
         // Set up notification for when video playback ends
         NotificationCenter.default.addObserver(
