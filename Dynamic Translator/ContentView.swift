@@ -206,11 +206,33 @@ struct ContentView: View {
     }
     
     private func setupVideoPlayer() {
-        if let videoURL = Bundle.main.url(forResource: "Dynamic_Translator_Button_Animation", withExtension: "mp4") {
-            print("Found video at: \(videoURL.absoluteString)")
-            videoPlayer = AVPlayer(url: videoURL)
+        // More robust file lookup with error logging
+        print("Attempting to load video file...")
+        
+        // Try to find it as a named resource
+        if let path = Bundle.main.path(forResource: "Dynamic_Translator_Button_Animation", withExtension: "mp4") {
+            let url = URL(fileURLWithPath: path)
+            print("Found video at path: \(url.absoluteString)")
+            videoPlayer = AVPlayer(url: url)
         } else {
-            print("Failed to find video file")
+            print("Could not find video as a direct resource")
+            
+            // Try loading from Assets catalog
+            if let assetURL = Bundle.main.url(forResource: "Dynamic_Translator_Button_Animation", 
+                                            withExtension: "mp4", 
+                                            subdirectory: "Assets.xcassets/Videos/Dynamic_Translator_Button_Animation.dataset") {
+                print("Found video in assets at: \(assetURL.absoluteString)")
+                videoPlayer = AVPlayer(url: assetURL)
+            } else {
+                print("Failed to find video in assets catalog")
+            }
+        }
+        
+        // Check if player item loaded properly
+        if videoPlayer?.currentItem == nil {
+            print("Failed to create player item")
+        } else {
+            print("Player item created successfully")
         }
         
         // Set up notification for when video playback ends
