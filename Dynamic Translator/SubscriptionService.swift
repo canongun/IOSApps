@@ -105,4 +105,23 @@ class SubscriptionService: ObservableObject {
             break
         }
     }
+    
+    @MainActor
+    func restorePurchases(usageManager: UsageTimeManager) async -> Bool {
+        do {
+            // For StoreKit 2, this will check the user's purchase history
+            // and restore any previously purchased non-consumable products and active subscriptions
+            for await verificationResult in Transaction.currentEntitlements {
+                // Process each transaction as if it were new
+                if case .verified(let transaction) = verificationResult {
+                    await handleTransaction(transaction, usageManager: usageManager)
+                }
+            }
+            return true
+        } catch {
+            self.error = error.localizedDescription
+            print("Failed to restore purchases: \(error)")
+            return false
+        }
+    }
 }

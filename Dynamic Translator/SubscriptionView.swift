@@ -9,6 +9,8 @@ struct SubscriptionView: View {
     @State private var isPurchasing = false
     @State private var errorMessage: String?
     @State private var showingError = false
+    @State private var isRestoring = false
+    @State private var showRestoreSuccess = false
     
     var body: some View {
         NavigationView {
@@ -39,6 +41,27 @@ struct SubscriptionView: View {
                     .background(Color.gray.opacity(0.1))
                     .cornerRadius(12)
                     .padding(.horizontal)
+                    
+                    // Add restore purchases button
+                    Button(action: {
+                        Task {
+                            await restorePurchases()
+                        }
+                    }) {
+                        HStack {
+                            if isRestoring {
+                                ProgressView()
+                                    .padding(.trailing, 5)
+                            }
+                            Text(isRestoring ? "Restoring..." : "Restore Purchases")
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                        .background(Color.gray.opacity(0.1))
+                        .cornerRadius(10)
+                    }
+                    .padding(.horizontal)
+                    .disabled(isRestoring || isPurchasing)
                     
                     Divider()
                         .padding(.vertical)
@@ -114,6 +137,11 @@ struct SubscriptionView: View {
             } message: {
                 Text(errorMessage ?? "An unknown error occurred")
             }
+            .alert("Purchases Restored", isPresented: $showRestoreSuccess) {
+                Button("OK", role: .cancel) {}
+            } message: {
+                Text("Your previous purchases have been restored successfully.")
+            }
             .onAppear {
                 // Refresh products when view appears
                 Task {
@@ -131,6 +159,24 @@ struct SubscriptionView: View {
             let success = try await subscriptionService.purchase(product, usageManager: usageManager)
             if !success {
                 errorMessage = "Purchase was cancelled or is pending."
+                showingError = true
+            }
+        } catch {
+            errorMessage = error.localizedDescription
+            showingError = true
+        }
+    }
+    
+    private func restorePurchases() async {
+        isRestoring = true
+        defer { isRestoring = false }
+        
+        do {
+            let success = await subscriptionService.restorePurchases(usageManager: usageManager)
+            if success {
+                showRestoreSuccess = true
+            } else {
+                errorMessage = "No purchases to restore or an error occurred."
                 showingError = true
             }
         } catch {
