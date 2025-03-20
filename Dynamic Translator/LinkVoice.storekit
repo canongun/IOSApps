@@ -17,7 +17,7 @@
     {
       "displayPrice" : "2.99",
       "familyShareable" : false,
-      "internalID" : "6743437019",
+      "internalID" : "6743573022",
       "localizations" : [
         {
           "description" : "15 minutes of translation",
@@ -25,7 +25,7 @@
           "locale" : "en_US"
         }
       ],
-      "productID" : "com.VoiceLink.credits.standard",
+      "productID" : "com.LinkVoice.credits.standard",
       "referenceName" : "Credits",
       "type" : "Consumable"
     }
@@ -34,7 +34,7 @@
     "_applicationInternalID" : "6743415544",
     "_developerTeamID" : "UB2UJV3T7Q",
     "_failTransactionsEnabled" : false,
-    "_lastSynchronizedDate" : 763992152.89107096,
+    "_lastSynchronizedDate" : 764204154.94663203,
     "_locale" : "en_US",
     "_storefront" : "USA",
     "_storeKitErrors" : [
@@ -102,8 +102,8 @@
           ],
           "displayPrice" : "2.99",
           "familyShareable" : false,
-          "groupNumber" : 1,
-          "internalID" : "6743436667",
+          "groupNumber" : 3,
+          "internalID" : "6743573189",
           "introductoryOffer" : null,
           "localizations" : [
             {
@@ -112,7 +112,7 @@
               "locale" : "en_US"
             }
           ],
-          "productID" : "com.VoiceLink.subscription.basic.monthly",
+          "productID" : "com.LinkVoice.subscription.basic.monthly",
           "recurringSubscriptionPeriod" : "P1M",
           "referenceName" : "Basic",
           "subscriptionGroupID" : "21651882",
@@ -130,8 +130,8 @@
           ],
           "displayPrice" : "5.99",
           "familyShareable" : false,
-          "groupNumber" : 2,
-          "internalID" : "6743436846",
+          "groupNumber" : 4,
+          "internalID" : "6743573151",
           "introductoryOffer" : null,
           "localizations" : [
             {
@@ -140,7 +140,7 @@
               "locale" : "en_US"
             }
           ],
-          "productID" : "com.VoiceLink.subscription.pro.monthly",
+          "productID" : "com.LinkVoice.subscription.pro.monthly",
           "recurringSubscriptionPeriod" : "P1M",
           "referenceName" : "Pro",
           "subscriptionGroupID" : "21651882",
