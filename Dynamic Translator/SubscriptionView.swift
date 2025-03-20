@@ -179,9 +179,6 @@ struct SubscriptionView: View {
                 errorMessage = "No purchases to restore or an error occurred."
                 showingError = true
             }
-        } catch {
-            errorMessage = error.localizedDescription
-            showingError = true
         }
     }
 }

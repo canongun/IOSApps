@@ -118,10 +118,6 @@ class SubscriptionService: ObservableObject {
                 }
             }
             return true
-        } catch {
-            self.error = error.localizedDescription
-            print("Failed to restore purchases: \(error)")
-            return false
         }
     }
 }
