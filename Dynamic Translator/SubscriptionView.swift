@@ -1,5 +1,6 @@
 import SwiftUI
 import StoreKit
+import SafariServices
 
 struct SubscriptionView: View {
     @ObservedObject var usageManager: UsageTimeManager
@@ -11,6 +12,14 @@ struct SubscriptionView: View {
     @State private var showingError = false
     @State private var isRestoring = false
     @State private var showRestoreSuccess = false
+    
+    // Add state for Safari view
+    @State private var showingSafari = false
+    @State private var safariURL: URL?
+    
+    // URLs for your legal documents - replace these with your actual URLs
+    private let termsOfUseURL = URL(string: "https://www.apple.com/legal/internet-services/itunes/dev/stdeula/")!
+    private let privacyPolicyURL = URL(string: "https://gist.github.com/canongun/e979c8af78ae9d255cba16156af578fc")!
     
     var body: some View {
         NavigationView {
@@ -125,6 +134,27 @@ struct SubscriptionView: View {
                             }
                         }
                     }
+                    
+                    // Add legal links at the bottom
+                    HStack {
+                        Button("Terms of Use") {
+                            safariURL = termsOfUseURL
+                            showingSafari = true
+                        }
+                        .font(.caption)
+                        .foregroundColor(.blue)
+                        
+                        Spacer()
+                        
+                        Button("Privacy Policy") {
+                            safariURL = privacyPolicyURL
+                            showingSafari = true
+                        }
+                        .font(.caption)
+                        .foregroundColor(.blue)
+                    }
+                    .padding(.horizontal)
+                    .padding(.top, 10)
                 }
                 .padding(.vertical)
             }
@@ -141,6 +171,11 @@ struct SubscriptionView: View {
                 Button("OK", role: .cancel) {}
             } message: {
                 Text("Your previous purchases have been restored successfully.")
+            }
+            .sheet(isPresented: $showingSafari) {
+                if let url = safariURL {
+                    SafariView(url: url)
+                }
             }
             .onAppear {
                 // Refresh products when view appears
@@ -253,6 +288,13 @@ struct SubscriptionPlanCard: View {
                 .fontWeight(.bold)
                 .foregroundColor(.blue)
             
+            // Explicitly show the subscription period/length
+            if !product.id.contains("credits") {
+                Text("Subscription Period: Monthly")
+                    .font(.subheadline)
+                    .foregroundColor(.primary)
+            }
+            
             Text(marketingDescription)
                 .font(.subheadline)
                 .foregroundColor(.secondary)
@@ -324,5 +366,18 @@ struct SubscriptionPlanCard: View {
             return .gray
         }
         return .blue
+    }
+}
+
+// Add a Safari view wrapper for showing web content
+struct SafariView: UIViewControllerRepresentable {
+    let url: URL
+    
+    func makeUIViewController(context: UIViewControllerRepresentableContext<SafariView>) -> SFSafariViewController {
+        return SFSafariViewController(url: url)
+    }
+    
+    func updateUIViewController(_ uiViewController: SFSafariViewController, context: UIViewControllerRepresentableContext<SafariView>) {
+        // No updates needed
     }
 }
