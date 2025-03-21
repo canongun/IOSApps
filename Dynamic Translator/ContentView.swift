@@ -439,22 +439,33 @@ struct ContentView: View {
                         elevenLabsService.synthesizeSpeech(text: translatedText, language: targetLanguage) { result in
                             DispatchQueue.main.async {
                                 self.isProcessing = false
-                                
-                                // After successful translation and audio playback, 
-                                // restart recording if in live translation mode
-                                if self.isLiveTranslationEnabled {
-                                    // Create a small delay to give time for the TTS to complete
-                                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                                        self.restartLiveRecording()
-                                    }
-                                }
                             }
                             
                             switch result {
                             case .success(let audioData):
-                                elevenLabsService.playAudio(data: audioData)
+                                // Set up the callback before playing audio
+                                self.elevenLabsService.onPlaybackCompleted = {
+                                    // This will be called when audio playback completes
+                                    if self.isLiveTranslationEnabled {
+                                        print("Audio playback completed, restarting live recording")
+                                        DispatchQueue.main.async {
+                                            self.restartLiveRecording()
+                                        }
+                                    }
+                                }
+                                
+                                // Now play the audio
+                                self.elevenLabsService.playAudio(data: audioData)
+                                
                             case .failure(let error):
                                 print("Speech synthesis error: \(error.localizedDescription)")
+                                
+                                // If speech synthesis fails, we should still restart recording in live mode
+                                if self.isLiveTranslationEnabled {
+                                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                                        self.restartLiveRecording()
+                                    }
+                                }
                             }
                         }
                         
@@ -485,21 +496,28 @@ struct ContentView: View {
     
     // Add a new method to restart live recording
     private func restartLiveRecording() {
-        // Only restart if we're in live mode and not already recording
+        print("Attempting to restart live recording")
+        
+        // Only restart if we're in live mode and not already recording or processing
         guard isLiveTranslationEnabled && !isTranslating && !isProcessing else {
+            print("Cannot restart: liveMode=\(isLiveTranslationEnabled), isTranslating=\(isTranslating), isProcessing=\(isProcessing)")
             return
         }
         
-        // Check if user has available time before starting
-        if usageManager.canMakeTranslation() {
-            if usageManager.startTranslation() {
-                startTranslating()
-                startVideo()
+        // Add a small delay to ensure audio session has fully transitioned
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+            // Check if user has available time before starting
+            if self.usageManager.canMakeTranslation() {
+                print("Starting new recording session in live mode")
+                if self.usageManager.startTranslation() {
+                    self.startTranslating()
+                    self.startVideo()
+                } else {
+                    self.showingLimitAlert = true
+                }
             } else {
-                showingLimitAlert = true
+                self.showingLimitAlert = true
             }
-        } else {
-            showingLimitAlert = true
         }
     }
     

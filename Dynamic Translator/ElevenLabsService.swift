@@ -1,10 +1,13 @@
 import Foundation
 import AVFoundation
 
-class ElevenLabsService {
+class ElevenLabsService: NSObject, AVAudioPlayerDelegate {
     private let apiKey = Configuration.elevenLabsAPIKey // Safely referenced
     private let baseURL = "https://api.elevenlabs.io/v1/text-to-speech"
     private var defaultVoiceID = "21m00Tcm4TlvDq8ikWAM" // Default voice ID (Rachel - English)
+    
+    // Add a completion handler for audio playback
+    var onPlaybackCompleted: (() -> Void)?
     
     // Voice ID mapping for different languages
     static let voiceIDMap: [String: String] = [
@@ -145,6 +148,8 @@ class ElevenLabsService {
                 return
             }
             
+            audioPlayer!.delegate = self  // Set the delegate to receive completion notifications
+            
             if !audioPlayer!.prepareToPlay() {
                 print("Failed to prepare audio for playback")
                 return
@@ -165,6 +170,21 @@ class ElevenLabsService {
                     print("Underlying error: \(underlyingError)")
                 }
             }
+            
+            // If there's an error, still call the completion handler
+            DispatchQueue.main.async {
+                self.onPlaybackCompleted?()
+            }
+        }
+    }
+    
+    // AVAudioPlayerDelegate method - called when audio finishes playing
+    func audioPlayerDidFinishPlaying(_ player: AVAudioPlayer, successfully flag: Bool) {
+        print("Audio playback finished, success: \(flag)")
+        
+        // Notify that playback is complete
+        DispatchQueue.main.async {
+            self.onPlaybackCompleted?()
         }
     }
 }

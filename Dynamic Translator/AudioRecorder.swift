@@ -19,9 +19,20 @@ class AudioRecorder: NSObject, ObservableObject, AVAudioRecorderDelegate {
     var onSilenceDetected: (() -> Void)?
     
     func startRecording(withSilenceDetection: Bool = false) {
+        // Stop any existing recording first
+        if isRecording {
+            stopRecording()
+        }
+        
+        // Reset recorded data
+        recordedData = nil
+        
+        // Reset audio session
         let audioSession = AVAudioSession.sharedInstance()
         
         do {
+            // Force deactivate and reactivate to clear any previous state
+            try audioSession.setActive(false, options: .notifyOthersOnDeactivation)
             try audioSession.setCategory(.record, mode: .default)
             try audioSession.setActive(true)
             
