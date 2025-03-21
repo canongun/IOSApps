@@ -63,7 +63,7 @@ struct ContentView: View {
     
     @State private var scale: CGFloat = 1.0
     
-    @State private var isLiveTranslationEnabled = false
+    @State private var isAutoTranslationEnabled = false
     
     var body: some View {
         VStack {
@@ -87,12 +87,12 @@ struct ContentView: View {
                 Spacer()
                 
                 // Live translation toggle
-                Toggle(isOn: $isLiveTranslationEnabled) {
+                Toggle(isOn: $isAutoTranslationEnabled) {
                     Text("")
                 }
                 .toggleStyle(SwitchToggleStyle(tint: .blue))
                 .labelsHidden()
-                .onChange(of: isLiveTranslationEnabled) { newValue in
+                .onChange(of: isAutoTranslationEnabled) { newValue in
                     // If we're currently recording and switch modes, stop recording
                     if isTranslating {
                         stopTranslating()
@@ -100,10 +100,10 @@ struct ContentView: View {
                     }
                 }
                 
-                Text(isLiveTranslationEnabled ? "Live" : "Manual")
+                Text(isAutoTranslationEnabled ? "Auto" : "Manual")
                     .font(.caption)
                     .foregroundColor(.blue)
-        
+                
                 // Existing history button
                 Button(action: {
                     showingHistory = true
@@ -159,7 +159,6 @@ struct ContentView: View {
                         if usageManager.canMakeTranslation() {
                             if usageManager.startTranslation() {
                                 startTranslating()
-                                startVideo()
                             }
                         } else {
                             showingLimitAlert = true
@@ -182,7 +181,7 @@ struct ContentView: View {
                 .simultaneousGesture(
                     TapGesture(count: 2)
                         .onEnded { _ in
-                            if isLiveTranslationEnabled && isTranslating {
+                            if isAutoTranslationEnabled && isTranslating {
                                 // Double tap in live mode fully stops the continuous cycle
                                 stopTranslating()
                                 stopVideo()
@@ -214,7 +213,7 @@ struct ContentView: View {
             }
             
             // Audio level indicator - only show in Live mode
-            if isTranslating && isLiveTranslationEnabled {
+            if isTranslating && isAutoTranslationEnabled {
                 HStack(spacing: 2) {
                     ForEach(0..<10, id: \.self) { i in
                         Rectangle()
@@ -326,43 +325,21 @@ struct ContentView: View {
         }
     }
     
-    private func startVideo() {
-        print("Starting video playback")
-        videoPlayer?.seek(to: .zero)
-        videoPlayer?.play()
-        
-        // Check what's happening
-        if videoPlayer == nil {
-            print("Error: videoPlayer is nil")
-        } else if videoPlayer?.currentItem == nil {
-            print("Error: player item is nil")
-        } else {
-            print("Video should be playing")
-        }
-        
-        isVideoPlaying = true
-    }
-    
-    private func stopVideo() {
-        videoPlayer?.pause()
-        videoPlayer?.seek(to: .zero)
-        isVideoPlaying = false
-    }
-    
+
     private func startTranslating() {
         // Only reset if we're not already translating
         if !isTranslating {
             isTranslating = true
             
             // In live mode, we may want to clear the previous results for better UX
-            if isLiveTranslationEnabled {
+            if isAutoTranslationEnabled {
                 // Leave the previous translation visible but clear the transcription
                 // This allows users to see the ongoing conversation flow
                 transcribedText = ""
             }
             
             // Set up silence detection callback if in live mode
-            if isLiveTranslationEnabled {
+            if isAutoTranslationEnabled {
                 audioRecorder.onSilenceDetected = {
                     self.processTranslation()
                 }
@@ -383,14 +360,14 @@ struct ContentView: View {
         
         // Only process automatically in manual mode
         // In live mode, processing is triggered by the silence detection callback
-        if !isLiveTranslationEnabled {
+        if !isAutoTranslationEnabled {
             processTranslation()
         }
     }
     
     private func processTranslation() {
         // Ensure isTranslating is false before processing
-        if isLiveTranslationEnabled {
+        if isAutoTranslationEnabled {
             isTranslating = false
         }
         
@@ -400,7 +377,7 @@ struct ContentView: View {
                 print("Skipping very short audio segment (likely no speech)")
                 
                 // If in live mode, immediately restart recording
-                if isLiveTranslationEnabled {
+                if isAutoTranslationEnabled {
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
                         self.restartLiveRecording()
                     }
@@ -461,7 +438,7 @@ struct ContentView: View {
                                 // Set up the callback before playing audio
                                 self.elevenLabsService.onPlaybackCompleted = {
                                     // This will be called when audio playback completes
-                                    if self.isLiveTranslationEnabled {
+                                    if self.isAutoTranslationEnabled {
                                         print("Audio playback completed, restarting live recording")
                                         
                                         // Force isTranslating to false to ensure we can restart
@@ -479,7 +456,7 @@ struct ContentView: View {
                                 print("Speech synthesis error: \(error.localizedDescription)")
                                 
                                 // If speech synthesis fails, we should still restart recording in live mode
-                                if self.isLiveTranslationEnabled {
+                                if self.isAutoTranslationEnabled {
                                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
                                         self.restartLiveRecording()
                                     }
@@ -528,8 +505,8 @@ struct ContentView: View {
         }
         
         // Only restart if we're in live mode and not processing
-        guard isLiveTranslationEnabled && !isProcessing else {
-            print("Cannot restart: liveMode=\(isLiveTranslationEnabled), isProcessing=\(isProcessing)")
+        guard isAutoTranslationEnabled && !isProcessing else {
+            print("Cannot restart: liveMode=\(isAutoTranslationEnabled), isProcessing=\(isProcessing)")
             return
         }
         
@@ -543,7 +520,6 @@ struct ContentView: View {
                 // Make absolutely sure isTranslating is false before calling startTranslating
                 self.isTranslating = false
                 self.startTranslating()
-                self.startVideo()
             } else {
                 self.showingLimitAlert = true
             }
@@ -592,7 +568,7 @@ struct ContentView: View {
     private var buttonLabel: String {
         if isProcessing {
             return "Processing..."
-        } else if isLiveTranslationEnabled {
+        } else if isAutoTranslationEnabled {
             if isTranslating {
                 return "Speaking... (Tap to stop)"
             } else {
