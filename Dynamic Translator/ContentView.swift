@@ -63,6 +63,8 @@ struct ContentView: View {
     
     @State private var scale: CGFloat = 1.0
     
+    @State private var isLiveTranslationEnabled = false
+    
     var body: some View {
         VStack {
             // Add usage indicator at the top
@@ -83,6 +85,24 @@ struct ContentView: View {
                 }
                 
                 Spacer()
+                
+                // Live translation toggle
+                Toggle(isOn: $isLiveTranslationEnabled) {
+                    Text("")
+                }
+                .toggleStyle(SwitchToggleStyle(tint: .blue))
+                .labelsHidden()
+                .onChange(of: isLiveTranslationEnabled) { newValue in
+                    // If we're currently recording and switch modes, stop recording
+                    if isTranslating {
+                        stopTranslating()
+                        stopVideo()
+                    }
+                }
+                
+                Text(isLiveTranslationEnabled ? "Live" : "Manual")
+                    .font(.caption)
+                    .foregroundColor(.blue)
                 
                 // Existing history button
                 Button(action: {
@@ -163,7 +183,7 @@ struct ContentView: View {
                 .disabled(isProcessing)
                 
                 // Text label below the button
-                Text(isTranslating ? "Tap to Translate" : "Tap to Speak")
+                Text(buttonLabel)
                     .font(.headline)
                     .foregroundColor(isTranslating ? .red : .blue)
                     .padding(.bottom, 10)
@@ -179,6 +199,20 @@ struct ContentView: View {
                         scale = 1.0
                     }
                 }
+            }
+            
+            // Audio level indicator
+            if isTranslating {
+                HStack(spacing: 2) {
+                    ForEach(0..<10, id: \.self) { i in
+                        Rectangle()
+                            .fill(self.levelColor(for: Float(i * 5) - 50, currentLevel: self.audioRecorder.currentAudioLevel))
+                            .frame(width: 3, height: CGFloat(i * 2) + 5)
+                            .cornerRadius(1.5)
+                    }
+                }
+                .animation(.spring(), value: audioRecorder.currentAudioLevel)
+                .padding(.top, 8)
             }
             
             Spacer()
@@ -305,19 +339,36 @@ struct ContentView: View {
     
     private func startTranslating() {
         isTranslating = true
-        audioRecorder.startRecording()
+        
+        // Set up silence detection callback if in live mode
+        if isLiveTranslationEnabled {
+            audioRecorder.onSilenceDetected = {
+                self.processTranslation()
+            }
+            // Start recording with silence detection
+            audioRecorder.startRecording(withSilenceDetection: true)
+        } else {
+            // Regular recording without silence detection
+            audioRecorder.startRecording()
+        }
     }
     
     private func stopTranslating() {
         isTranslating = false
         audioRecorder.stopRecording()
         
+        // Only process automatically in manual mode
+        // In live mode, processing is triggered by the silence detection callback
+        if !isLiveTranslationEnabled {
+            processTranslation()
+        }
+    }
+    
+    private func processTranslation() {
         if let audioData = audioRecorder.recordedData {
             isProcessing = true
             processAudio(audioData: audioData)
         }
-        
-        // We'll calculate time usage after successful processing
     }
     
     private func processAudio(audioData: Data) {
@@ -430,6 +481,31 @@ struct ContentView: View {
         ]
         
         return languageMap[code.lowercased()] ?? code
+    }
+    
+    // Computed property for button label text
+    private var buttonLabel: String {
+        if isProcessing {
+            return "Processing..."
+        } else if isLiveTranslationEnabled {
+            return isTranslating ? "Speaking... (Auto)" : "Tap to Speak"
+        } else {
+            return isTranslating ? "Tap to Translate" : "Tap to Speak"
+        }
+    }
+    
+    private func levelColor(for threshold: Float, currentLevel: Float) -> Color {
+        if currentLevel >= threshold {
+            // Gradient from green to yellow to red as level increases
+            let intensity = min(1.0, (currentLevel - threshold) / 25.0)
+            if intensity < 0.5 {
+                return .green.opacity(0.7 + intensity * 0.6)
+            } else {
+                return .red.opacity(0.6 + (intensity - 0.5) * 0.8)
+            }
+        } else {
+            return .gray.opacity(0.3)
+        }
     }
 }
 
