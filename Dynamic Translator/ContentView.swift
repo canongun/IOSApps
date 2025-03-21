@@ -63,6 +63,8 @@ struct ContentView: View {
     
     @State private var scale: CGFloat = 1.0
     
+    @State private var isLiveTranslationEnabled = false
+    
     var body: some View {
         VStack {
             // Add usage indicator at the top
@@ -84,6 +86,24 @@ struct ContentView: View {
                 
                 Spacer()
                 
+                // Live translation toggle
+                Toggle(isOn: $isLiveTranslationEnabled) {
+                    Text("")
+                }
+                .toggleStyle(SwitchToggleStyle(tint: .blue))
+                .labelsHidden()
+                .onChange(of: isLiveTranslationEnabled) { newValue in
+                    // If we're currently recording and switch modes, stop recording
+                    if isTranslating {
+                        stopTranslating()
+                        stopVideo()
+                    }
+                }
+                
+                Text(isLiveTranslationEnabled ? "Live" : "Manual")
+                    .font(.caption)
+                    .foregroundColor(.blue)
+        
                 // Existing history button
                 Button(action: {
                     showingHistory = true
@@ -159,11 +179,23 @@ struct ContentView: View {
                             .scaleEffect(scale)
                     }
                 }
+                .simultaneousGesture(
+                    TapGesture(count: 2)
+                        .onEnded { _ in
+                            if isLiveTranslationEnabled && isTranslating {
+                                // Double tap in live mode fully stops the continuous cycle
+                                stopTranslating()
+                                stopVideo()
+                                // Set a flag or use a boolean to prevent auto-restart
+                                audioRecorder.onSilenceDetected = nil
+                            }
+                        }
+                )
                 .padding(.bottom, 8)
                 .disabled(isProcessing)
                 
                 // Text label below the button
-                Text(isTranslating ? "Tap to Translate" : "Tap to Speak")
+                Text(buttonLabel)
                     .font(.headline)
                     .foregroundColor(isTranslating ? .red : .blue)
                     .padding(.bottom, 10)
@@ -179,6 +211,20 @@ struct ContentView: View {
                         scale = 1.0
                     }
                 }
+            }
+            
+            // Audio level indicator - only show in Live mode
+            if isTranslating && isLiveTranslationEnabled {
+                HStack(spacing: 2) {
+                    ForEach(0..<10, id: \.self) { i in
+                        Rectangle()
+                            .fill(self.levelColor(for: Float(i * 5) - 50, currentLevel: self.audioRecorder.currentAudioLevel))
+                            .frame(width: 3, height: CGFloat(i * 2) + 5)
+                            .cornerRadius(1.5)
+                    }
+                }
+                .animation(.spring(), value: audioRecorder.currentAudioLevel)
+                .padding(.top, 8)
             }
             
             Spacer()
@@ -304,20 +350,67 @@ struct ContentView: View {
     }
     
     private func startTranslating() {
-        isTranslating = true
-        audioRecorder.startRecording()
+        // Only reset if we're not already translating
+        if !isTranslating {
+            isTranslating = true
+            
+            // In live mode, we may want to clear the previous results for better UX
+            if isLiveTranslationEnabled {
+                // Leave the previous translation visible but clear the transcription
+                // This allows users to see the ongoing conversation flow
+                transcribedText = ""
+            }
+            
+            // Set up silence detection callback if in live mode
+            if isLiveTranslationEnabled {
+                audioRecorder.onSilenceDetected = {
+                    self.processTranslation()
+                }
+                // Start recording with silence detection
+                audioRecorder.startRecording(withSilenceDetection: true)
+            } else {
+                // Regular recording without silence detection
+                audioRecorder.startRecording()
+            }
+        } else {
+            print("Warning: Tried to start translating while already in translating state")
+        }
     }
     
     private func stopTranslating() {
         isTranslating = false
         audioRecorder.stopRecording()
         
+        // Only process automatically in manual mode
+        // In live mode, processing is triggered by the silence detection callback
+        if !isLiveTranslationEnabled {
+            processTranslation()
+        }
+    }
+    
+    private func processTranslation() {
+        // Ensure isTranslating is false before processing
+        if isLiveTranslationEnabled {
+            isTranslating = false
+        }
+        
         if let audioData = audioRecorder.recordedData {
+            // Skip very short recordings which likely don't contain real speech
+            if audioData.count < 5000 { // Skip if less than ~0.5 seconds
+                print("Skipping very short audio segment (likely no speech)")
+                
+                // If in live mode, immediately restart recording
+                if isLiveTranslationEnabled {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                        self.restartLiveRecording()
+                    }
+                }
+                return
+            }
+            
             isProcessing = true
             processAudio(audioData: audioData)
         }
-        
-        // We'll calculate time usage after successful processing
     }
     
     private func processAudio(audioData: Data) {
@@ -365,9 +458,32 @@ struct ContentView: View {
                             
                             switch result {
                             case .success(let audioData):
-                                elevenLabsService.playAudio(data: audioData)
+                                // Set up the callback before playing audio
+                                self.elevenLabsService.onPlaybackCompleted = {
+                                    // This will be called when audio playback completes
+                                    if self.isLiveTranslationEnabled {
+                                        print("Audio playback completed, restarting live recording")
+                                        
+                                        // Force isTranslating to false to ensure we can restart
+                                        DispatchQueue.main.async {
+                                            self.isTranslating = false 
+                                            self.restartLiveRecording()
+                                        }
+                                    }
+                                }
+                                
+                                // Now play the audio
+                                self.elevenLabsService.playAudio(data: audioData)
+                                
                             case .failure(let error):
                                 print("Speech synthesis error: \(error.localizedDescription)")
+                                
+                                // If speech synthesis fails, we should still restart recording in live mode
+                                if self.isLiveTranslationEnabled {
+                                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                                        self.restartLiveRecording()
+                                    }
+                                }
                             }
                         }
                         
@@ -393,6 +509,46 @@ struct ContentView: View {
                 }
                 print("Transcription error: \(error.localizedDescription)")
             }
+        }
+    }
+    
+    // Replace the entire restartLiveRecording method
+    private func restartLiveRecording() {
+        print("Attempting to restart live recording")
+        
+        // Clear any existing recording state
+        isTranslating = false
+        
+        // Make sure audio sessions are properly reset
+        do {
+            let audioSession = AVAudioSession.sharedInstance()
+            try audioSession.setActive(false, options: .notifyOthersOnDeactivation)
+        } catch {
+            print("Error resetting audio session: \(error)")
+        }
+        
+        // Only restart if we're in live mode and not processing
+        guard isLiveTranslationEnabled && !isProcessing else {
+            print("Cannot restart: liveMode=\(isLiveTranslationEnabled), isProcessing=\(isProcessing)")
+            return
+        }
+        
+        print("Conditions met for live recording restart")
+        
+        // Start recording immediately rather than with a delay
+        // The speech detection logic will prevent premature translations
+        if self.usageManager.canMakeTranslation() {
+            print("Starting new recording session in live mode (waiting for speech)")
+            if self.usageManager.startTranslation() {
+                // Make absolutely sure isTranslating is false before calling startTranslating
+                self.isTranslating = false
+                self.startTranslating()
+                self.startVideo()
+            } else {
+                self.showingLimitAlert = true
+            }
+        } else {
+            self.showingLimitAlert = true
         }
     }
     
@@ -430,6 +586,35 @@ struct ContentView: View {
         ]
         
         return languageMap[code.lowercased()] ?? code
+    }
+    
+    // Computed property for button label text
+    private var buttonLabel: String {
+        if isProcessing {
+            return "Processing..."
+        } else if isLiveTranslationEnabled {
+            if isTranslating {
+                return "Speaking... (Tap to stop)"
+            } else {
+                return "Tap to Start Conversation"
+            }
+        } else {
+            return isTranslating ? "Tap to Translate" : "Tap to Speak"
+        }
+    }
+    
+    private func levelColor(for threshold: Float, currentLevel: Float) -> Color {
+        if currentLevel >= threshold {
+            // Gradient from green to yellow to red as level increases
+            let intensity = Double(min(1.0, (currentLevel - threshold) / 25.0))
+            if intensity < 0.5 {
+                return .green.opacity(0.7 + intensity * 0.6)
+            } else {
+                return .red.opacity(0.6 + (intensity - 0.5) * 0.8)
+            }
+        } else {
+            return .gray.opacity(0.3)
+        }
     }
 }
 
