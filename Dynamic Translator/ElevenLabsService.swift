@@ -8,12 +8,33 @@ class ElevenLabsService {
     
     // Voice ID mapping for different languages
     static let voiceIDMap: [String: String] = [
-        "English": "21m00Tcm4TlvDq8ikWAM", // Rachel
-        "Spanish": "x5IDPSl4ZUbhosMmVFTk",
+        "Bulgarian": "fSxb5mPM1l5zTVVtM3Vb",
+        "Chinese": "hkfHEbBvdQFNX4uWHqRF",
+        "Czech": "OAAjJsQDvpg3sVjiLgyl",
+        "Danish": "ZKutKtutnlbOxDxkNlhk",
+        "Dutch": "YUdpWWny7k5yb4QCeweX",
+        "English": "21m00Tcm4TlvDq8ikWAM",
+        "Finnish": "YSabzCJMvEHDduIDMdwV",
         "French": "O31r762Gb3WFygrEOGh0",
         "German": "dCnu06FiOZma2KVNUoPZ",
+        "Greek": "XZ8zM3TBDcQnbvfD1YDK",
+        "Hindi": "Sm1seazb4gs7RSlUVw7c",
+        "Indonesian": "LcvlyuBGMjj1h4uAtQjo",
         "Italian": "3DPhHWXDY263XJ1d2EPN",
-        "Turkish": "KbaseEXyT9EE0CQLEfbB"
+        "Japanese": "8EkOjt4xTPGMclNlh1pk",
+        "Korean": "uyVNoMrnUku1dZyVEXwD",
+        "Malay": "UcqZLa941Kkt8ZhEEybf",
+        "Norwegian": "uNsWM1StCcpydKYOjKyu",
+        "Polish": "Pid5DJleNF2sxsuF6YKD",
+        "Portuguese": "eVXYtPVYB9wDoz9NVTIy",
+        "Romanian": "urzoE6aZYmSRdFQ6215h",
+        "Russian": "AB9XsbSA4eLG12t2myjN",
+        "Slovak": "3K1lqsxxXFiTAXCO09Zv",
+        "Spanish": "x5IDPSl4ZUbhosMmVFTk",
+        "Swedish": "4xkUqaR9MYOJHoaC1Nak",
+        "Turkish": "KbaseEXyT9EE0CQLEfbB",
+        "Ukrainian": "nCqaTnIbLdME87OuQaZY",
+        "Vietnamese": "foH7s9fX31wFFH2yqrFa"
     ]
     
     private var audioPlayer: AVAudioPlayer?

@@ -12,7 +12,35 @@ import AVKit
 struct ContentView: View {
     @State private var isTranslating = false
     @State private var targetLanguage = "English"
-    @State private var availableLanguages = ["English", "Spanish", "French", "German", "Italian", "Turkish"]
+    @State private var availableLanguages = [
+        "Bulgarian", 
+        "Chinese", 
+        "Czech",
+        "Danish", 
+        "Dutch", 
+        "English", 
+        "Finnish",
+        "French", 
+        "German", 
+        "Greek",
+        "Hindi", 
+        "Indonesian",
+        "Italian", 
+        "Japanese", 
+        "Korean",
+        "Malay",
+        "Norwegian",
+        "Polish",
+        "Portuguese", 
+        "Romanian",
+        "Russian",
+        "Slovak",
+        "Spanish", 
+        "Swedish",
+        "Turkish", 
+        "Ukrainian",
+        "Vietnamese"
+    ]
     @State private var transcribedText = ""
     @State private var translatedText = ""
     @State private var isProcessing = false
@@ -371,12 +399,33 @@ struct ContentView: View {
     // Helper function to convert language codes to human-readable names
     private func languageCodeToName(_ code: String) -> String {
         let languageMap = [
+            "bg": "Bulgarian",
+            "cs": "Czech",
+            "da": "Danish",
+            "de": "German",
+            "el": "Greek",
             "en": "English",
             "es": "Spanish",
+            "fi": "Finnish",
             "fr": "French",
-            "de": "German",
+            "hi": "Hindi",
+            "id": "Indonesian",
             "it": "Italian",
+            "ja": "Japanese",
+            "ko": "Korean",
+            "nl": "Dutch",
+            "ms": "Malay",
+            "no": "Norwegian",
+            "pl": "Polish",
+            "pt": "Portuguese",
+            "ro": "Romanian",
+            "ru": "Russian",
+            "sk": "Slovak",
+            "sv": "Swedish",
             "tr": "Turkish",
+            "uk": "Ukrainian",
+            "vi": "Vietnamese",
+            "zh": "Chinese"
             // Add more languages as needed
         ]
         
