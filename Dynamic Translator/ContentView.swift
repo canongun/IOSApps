@@ -103,15 +103,7 @@ struct ContentView: View {
                 Text(isLiveTranslationEnabled ? "Live" : "Manual")
                     .font(.caption)
                     .foregroundColor(.blue)
-                
-                if isLiveTranslationEnabled {
-                    Text("(Continuous)")
-                        .font(.caption2)
-                        .foregroundColor(.blue.opacity(0.7))
-                        .padding(.leading, -5)
-                        .padding(.top, 2)
-                }
-                
+        
                 // Existing history button
                 Button(action: {
                     showingHistory = true
@@ -221,8 +213,8 @@ struct ContentView: View {
                 }
             }
             
-            // Audio level indicator
-            if isTranslating {
+            // Audio level indicator - only show in Live mode
+            if isTranslating && isLiveTranslationEnabled {
                 HStack(spacing: 2) {
                     ForEach(0..<10, id: \.self) { i in
                         Rectangle()
@@ -602,7 +594,7 @@ struct ContentView: View {
             return "Processing..."
         } else if isLiveTranslationEnabled {
             if isTranslating {
-                return "Speaking... (Double-tap to stop)"
+                return "Speaking... (Tap to stop)"
             } else {
                 return "Tap to Start Conversation"
             }
