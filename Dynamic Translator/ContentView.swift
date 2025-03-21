@@ -167,6 +167,9 @@ struct ContentView: View {
                 // Main translation button
                 Button(action: {
                     if isTranslating {
+                        // When stopping, make sure to clear the silence detection callback
+                        // This prevents auto-restart after stopping
+                        audioRecorder.onSilenceDetected = nil
                         stopTranslating()
                     } else {
                         // Check if user has available time before starting
@@ -195,11 +198,12 @@ struct ContentView: View {
                 .simultaneousGesture(
                     TapGesture(count: 2)
                         .onEnded { _ in
-                            if isAutoTranslationEnabled && isTranslating {
-                                // Double tap in live mode fully stops the continuous cycle
-                                stopTranslating()
-                                // Set a flag or use a boolean to prevent auto-restart
+                            if (translationMode == "Auto" || translationMode == "Conversational") && isTranslating {
+                                // Double tap in auto/conversational mode fully stops the continuous cycle
+                                print("Double-tap detected, stopping continuous cycle")
+                                // Clear the callback first to prevent auto-restart
                                 audioRecorder.onSilenceDetected = nil
+                                stopTranslating()
                             }
                         }
                 )
@@ -225,8 +229,8 @@ struct ContentView: View {
                 }
             }
             
-            // Audio level indicator - only show in Live mode
-            if isTranslating && isAutoTranslationEnabled {
+            // Audio level indicator - show in both Auto and Conversational modes
+            if isTranslating && (translationMode == "Auto" || translationMode == "Conversational") {
                 HStack(spacing: 2) {
                     ForEach(0..<10, id: \.self) { i in
                         Rectangle()
@@ -243,7 +247,7 @@ struct ContentView: View {
             
             // Add language selection for conversational mode
             if translationMode == "Conversational" {
-                HStack {
+                VStack(spacing: 12) {
                     // Primary language selection
                     Menu {
                         ForEach(availableLanguages, id: \.self) { language in
@@ -256,14 +260,13 @@ struct ContentView: View {
                             Text("Language 1: \(targetLanguage)")
                                 .font(.subheadline)
                             Image(systemName: "chevron.down")
+                            Spacer()
                         }
-                        .padding(8)
+                        .padding(10)
                         .background(Color.blue.opacity(0.1))
                         .cornerRadius(8)
+                        .frame(maxWidth: .infinity)
                     }
-                    
-                    Spacer()
-                        .frame(width: 20)
                     
                     // Secondary language selection
                     Menu {
@@ -277,13 +280,16 @@ struct ContentView: View {
                             Text("Language 2: \(secondaryLanguage)")
                                 .font(.subheadline)
                             Image(systemName: "chevron.down")
+                            Spacer()
                         }
-                        .padding(8)
+                        .padding(10)
                         .background(Color.blue.opacity(0.1))
                         .cornerRadius(8)
+                        .frame(maxWidth: .infinity)
                     }
                 }
                 .padding(.horizontal)
+                .padding(.bottom, 20)
             } else {
                 // Language selection dropdown (only in non-conversational modes)
                 Menu {
@@ -366,14 +372,23 @@ struct ContentView: View {
     }
     
     private func stopTranslating() {
+        // First set isTranslating to false to prevent any race conditions
         isTranslating = false
+        
+        // Stop recording
         audioRecorder.stopRecording()
         
         // Only process automatically in manual mode
-        // In live mode, processing is triggered by the silence detection callback
-        if !isAutoTranslationEnabled {
+        // In auto/conversational mode, processing is triggered by the silence detection callback
+        if translationMode == "Manual" {
             processTranslation()
+        } else {
+            // For Auto and Conversational modes, explicitly clear the callback
+            // to prevent auto-restart after stopping
+            audioRecorder.onSilenceDetected = nil
         }
+        
+        print("Recording stopped, translationMode: \(translationMode)")
     }
     
     private func processTranslation() {
