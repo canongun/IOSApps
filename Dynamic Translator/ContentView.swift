@@ -358,25 +358,30 @@ struct ContentView: View {
     }
     
     private func startTranslating() {
-        isTranslating = true
-        
-        // In live mode, we may want to clear the previous results for better UX
-        if isLiveTranslationEnabled {
-            // Leave the previous translation visible but clear the transcription
-            // This allows users to see the ongoing conversation flow
-            transcribedText = ""
-        }
-        
-        // Set up silence detection callback if in live mode
-        if isLiveTranslationEnabled {
-            audioRecorder.onSilenceDetected = {
-                self.processTranslation()
+        // Only reset if we're not already translating
+        if !isTranslating {
+            isTranslating = true
+            
+            // In live mode, we may want to clear the previous results for better UX
+            if isLiveTranslationEnabled {
+                // Leave the previous translation visible but clear the transcription
+                // This allows users to see the ongoing conversation flow
+                transcribedText = ""
             }
-            // Start recording with silence detection
-            audioRecorder.startRecording(withSilenceDetection: true)
+            
+            // Set up silence detection callback if in live mode
+            if isLiveTranslationEnabled {
+                audioRecorder.onSilenceDetected = {
+                    self.processTranslation()
+                }
+                // Start recording with silence detection
+                audioRecorder.startRecording(withSilenceDetection: true)
+            } else {
+                // Regular recording without silence detection
+                audioRecorder.startRecording()
+            }
         } else {
-            // Regular recording without silence detection
-            audioRecorder.startRecording()
+            print("Warning: Tried to start translating while already in translating state")
         }
     }
     
@@ -392,6 +397,11 @@ struct ContentView: View {
     }
     
     private func processTranslation() {
+        // Ensure isTranslating is false before processing
+        if isLiveTranslationEnabled {
+            isTranslating = false
+        }
+        
         if let audioData = audioRecorder.recordedData {
             isProcessing = true
             processAudio(audioData: audioData)
@@ -448,7 +458,10 @@ struct ContentView: View {
                                     // This will be called when audio playback completes
                                     if self.isLiveTranslationEnabled {
                                         print("Audio playback completed, restarting live recording")
+                                        
+                                        // Force isTranslating to false to ensure we can restart
                                         DispatchQueue.main.async {
+                                            self.isTranslating = false 
                                             self.restartLiveRecording()
                                         }
                                     }
@@ -494,22 +507,37 @@ struct ContentView: View {
         }
     }
     
-    // Add a new method to restart live recording
+    // Replace the entire restartLiveRecording method
     private func restartLiveRecording() {
         print("Attempting to restart live recording")
         
-        // Only restart if we're in live mode and not already recording or processing
-        guard isLiveTranslationEnabled && !isTranslating && !isProcessing else {
-            print("Cannot restart: liveMode=\(isLiveTranslationEnabled), isTranslating=\(isTranslating), isProcessing=\(isProcessing)")
+        // Clear any existing recording state
+        isTranslating = false
+        
+        // Make sure audio sessions are properly reset
+        do {
+            let audioSession = AVAudioSession.sharedInstance()
+            try audioSession.setActive(false, options: .notifyOthersOnDeactivation)
+        } catch {
+            print("Error resetting audio session: \(error)")
+        }
+        
+        // Only restart if we're in live mode and not processing
+        guard isLiveTranslationEnabled && !isProcessing else {
+            print("Cannot restart: liveMode=\(isLiveTranslationEnabled), isProcessing=\(isProcessing)")
             return
         }
         
+        print("Conditions met, restarting in 0.5s")
+        
         // Add a small delay to ensure audio session has fully transitioned
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
             // Check if user has available time before starting
             if self.usageManager.canMakeTranslation() {
                 print("Starting new recording session in live mode")
                 if self.usageManager.startTranslation() {
+                    // Make absolutely sure isTranslating is false before calling startTranslating
+                    self.isTranslating = false
                     self.startTranslating()
                     self.startVideo()
                 } else {

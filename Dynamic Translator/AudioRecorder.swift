@@ -104,12 +104,17 @@ class AudioRecorder: NSObject, ObservableObject, AVAudioRecorderDelegate {
                     self.silenceTimer = Timer.scheduledTimer(withTimeInterval: self.silenceDuration, repeats: false) { [weak self] _ in
                         guard let self = self, self.isRecording else { return }
                         
-                        // Silence has been detected for the required duration
+                        print("Silence detected, stopping recording")
+                        
+                        // Important: Save the callback before stopping recording
+                        let callback = self.onSilenceDetected
+                        
+                        // Stop recording first - this sets isRecording to false
                         self.stopRecording()
                         
-                        // Call the silence detected callback
+                        // Then invoke the callback
                         DispatchQueue.main.async {
-                            self.onSilenceDetected?()
+                            callback?()
                         }
                     }
                 }

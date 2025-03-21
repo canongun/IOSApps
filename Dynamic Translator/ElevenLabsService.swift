@@ -137,14 +137,26 @@ class ElevenLabsService: NSObject, AVAudioPlayerDelegate {
             print("Attempting to play audio data of size: \(data.count) bytes")
             
             // Configure audio session for playback
-            try AVAudioSession.sharedInstance().setCategory(.playback, mode: .default)
-            try AVAudioSession.sharedInstance().setActive(true)
+            let audioSession = AVAudioSession.sharedInstance()
+            try audioSession.setCategory(.playback, mode: .default)
+            try audioSession.setActive(true)
+            
+            // Clean up previous player if it exists
+            if audioPlayer != nil {
+                audioPlayer?.stop()
+                audioPlayer = nil
+            }
             
             // Create and play audio
             audioPlayer = try AVAudioPlayer(data: data)
             
             if audioPlayer == nil {
                 print("Failed to create audio player")
+                
+                // If there's an error, still call the completion handler
+                DispatchQueue.main.async {
+                    self.onPlaybackCompleted?()
+                }
                 return
             }
             
@@ -152,12 +164,22 @@ class ElevenLabsService: NSObject, AVAudioPlayerDelegate {
             
             if !audioPlayer!.prepareToPlay() {
                 print("Failed to prepare audio for playback")
+                
+                // If there's an error, still call the completion handler
+                DispatchQueue.main.async {
+                    self.onPlaybackCompleted?()
+                }
                 return
             }
             
             let success = audioPlayer!.play()
             if !success {
                 print("Failed to start audio playback")
+                
+                // If there's an error, still call the completion handler
+                DispatchQueue.main.async {
+                    self.onPlaybackCompleted?()
+                }
             } else {
                 print("Audio playback started successfully")
             }
