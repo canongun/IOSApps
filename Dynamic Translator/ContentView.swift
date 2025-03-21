@@ -65,9 +65,13 @@ struct ContentView: View {
     
     @State private var isAutoTranslationEnabled = false
     
+    @State private var translationMode = "Manual"
+    @State private var availableModes = ["Manual", "Auto", "Conversational"]
+    @State private var secondaryLanguage = "English"
+    
     var body: some View {
         VStack {
-            // Add usage indicator at the top
+            // Replace the current mode toggle with a dropdown
             HStack {
                 // Subscription/time remaining button
                 Button(action: {
@@ -86,22 +90,34 @@ struct ContentView: View {
                 
                 Spacer()
                 
-                // Live translation toggle
-                Toggle(isOn: $isAutoTranslationEnabled) {
-                    Text("")
-                }
-                .toggleStyle(SwitchToggleStyle(tint: .blue))
-                .labelsHidden()
-                .onChange(of: isAutoTranslationEnabled) { newValue in
-                    // If we're currently recording and switch modes, stop recording
-                    if isTranslating {
-                        stopTranslating()
+                // Mode selection dropdown
+                Menu {
+                    ForEach(availableModes, id: \.self) { mode in
+                        Button(mode) {
+                            if translationMode != mode {
+                                // If we're currently recording and switch modes, stop recording
+                                if isTranslating {
+                                    stopTranslating()
+                                }
+                                translationMode = mode
+                                // Reset isAutoTranslationEnabled based on mode
+                                isAutoTranslationEnabled = (mode == "Auto")
+                            }
+                        }
                     }
+                } label: {
+                    HStack {
+                        Text(translationMode)
+                            .font(.caption)
+                            .foregroundColor(.blue)
+                        Image(systemName: "chevron.down")
+                            .font(.caption)
+                            .foregroundColor(.blue)
+                    }
+                    .padding(8)
+                    .background(Color.blue.opacity(0.1))
+                    .cornerRadius(8)
                 }
-                
-                Text(isAutoTranslationEnabled ? "Auto" : "Manual")
-                    .font(.caption)
-                    .foregroundColor(.blue)
                 
                 // Existing history button
                 Button(action: {
@@ -225,25 +241,70 @@ struct ContentView: View {
             
             Spacer()
             
-            // Language selection dropdown
-            Menu {
-                ForEach(availableLanguages, id: \.self) { language in
-                    Button(language) {
-                        targetLanguage = language
+            // Add language selection for conversational mode
+            if translationMode == "Conversational" {
+                HStack {
+                    // Primary language selection
+                    Menu {
+                        ForEach(availableLanguages, id: \.self) { language in
+                            Button(language) {
+                                targetLanguage = language
+                            }
+                        }
+                    } label: {
+                        HStack {
+                            Text("Language 1: \(targetLanguage)")
+                                .font(.subheadline)
+                            Image(systemName: "chevron.down")
+                        }
+                        .padding(8)
+                        .background(Color.blue.opacity(0.1))
+                        .cornerRadius(8)
+                    }
+                    
+                    Spacer()
+                        .frame(width: 20)
+                    
+                    // Secondary language selection
+                    Menu {
+                        ForEach(availableLanguages, id: \.self) { language in
+                            Button(language) {
+                                secondaryLanguage = language
+                            }
+                        }
+                    } label: {
+                        HStack {
+                            Text("Language 2: \(secondaryLanguage)")
+                                .font(.subheadline)
+                            Image(systemName: "chevron.down")
+                        }
+                        .padding(8)
+                        .background(Color.blue.opacity(0.1))
+                        .cornerRadius(8)
                     }
                 }
-            } label: {
-                HStack {
-                    Text("Translate to: \(targetLanguage)")
-                        .font(.headline)
-                    Image(systemName: "chevron.down")
+                .padding(.horizontal)
+            } else {
+                // Language selection dropdown (only in non-conversational modes)
+                Menu {
+                    ForEach(availableLanguages, id: \.self) { language in
+                        Button(language) {
+                            targetLanguage = language
+                        }
+                    }
+                } label: {
+                    HStack {
+                        Text("Translate to: \(targetLanguage)")
+                            .font(.headline)
+                        Image(systemName: "chevron.down")
+                    }
+                    .padding()
+                    .background(Color.gray.opacity(0.2))
+                    .cornerRadius(10)
                 }
-                .padding()
-                .background(Color.gray.opacity(0.2))
-                .cornerRadius(10)
+                .padding(.bottom, 50)
+                .disabled(isTranslating || isProcessing)
             }
-            .padding(.bottom, 50)
-            .disabled(isTranslating || isProcessing)
         }
         .padding()
         .sheet(isPresented: $showingHistory) {
@@ -281,15 +342,15 @@ struct ContentView: View {
         if !isTranslating {
             isTranslating = true
             
-            // In live mode, we may want to clear the previous results for better UX
-            if isAutoTranslationEnabled {
+            // In auto or conversational mode, we may want to clear the previous results for better UX
+            if translationMode == "Auto" || translationMode == "Conversational" {
                 // Leave the previous translation visible but clear the transcription
                 // This allows users to see the ongoing conversation flow
                 transcribedText = ""
             }
             
-            // Set up silence detection callback if in live mode
-            if isAutoTranslationEnabled {
+            // Set up silence detection callback if in auto or conversational mode
+            if translationMode == "Auto" || translationMode == "Conversational" {
                 audioRecorder.onSilenceDetected = {
                     self.processTranslation()
                 }
@@ -349,11 +410,13 @@ struct ContentView: View {
             case .success(let transcriptionResult):
                 print("Transcription successful: \(transcriptionResult.text)")
                 
+                var detectedLanguageCode = ""
                 // Update detected language from transcription metadata
                 if let metadata = transcriptionResult.metadata,
-                   let detectedLanguageCode = metadata.detectedLanguage {
+                   let languageCode = metadata.detectedLanguage {
+                    detectedLanguageCode = languageCode
                     DispatchQueue.main.async {
-                        self.detectedLanguage = self.languageCodeToName(detectedLanguageCode)
+                        self.detectedLanguage = self.languageCodeToName(languageCode)
                     }
                 }
                 
@@ -361,8 +424,28 @@ struct ContentView: View {
                     self.transcribedText = transcriptionResult.text
                 }
                 
-                // Step 2: Translate the transcribed text
-                translationService.translateText(text: transcriptionResult.text, targetLanguage: targetLanguage) { result in
+                // Determine which language to translate to based on the mode
+                var translationTarget = self.targetLanguage
+                
+                if self.translationMode == "Conversational" {
+                    // In conversational mode, translate to the other language
+                    let detectedLanguageName = self.languageCodeToName(detectedLanguageCode)
+                    
+                    if detectedLanguageName.lowercased() == self.targetLanguage.lowercased() {
+                        translationTarget = self.secondaryLanguage
+                    } else if detectedLanguageName.lowercased() == self.secondaryLanguage.lowercased() {
+                        translationTarget = self.targetLanguage
+                    } else {
+                        // If detected language doesn't match either selected language,
+                        // default to the first selected language
+                        translationTarget = self.targetLanguage
+                    }
+                    
+                    print("Conversational mode: Detected \(detectedLanguageName), translating to \(translationTarget)")
+                }
+                
+                // Step 2: Translate the transcribed text to the determined target
+                translationService.translateText(text: transcriptionResult.text, targetLanguage: translationTarget) { result in
                     switch result {
                     case .success(let translatedText):
                         DispatchQueue.main.async {
@@ -373,12 +456,12 @@ struct ContentView: View {
                                 originalText: self.transcribedText,
                                 translatedText: translatedText,
                                 sourceLanguage: self.detectedLanguage,
-                                targetLanguage: self.targetLanguage
+                                targetLanguage: translationTarget
                             )
                         }
                         
                         // Step 3: Convert translated text to speech using ElevenLabs
-                        elevenLabsService.synthesizeSpeech(text: translatedText, language: targetLanguage) { result in
+                        elevenLabsService.synthesizeSpeech(text: translatedText, language: translationTarget) { result in
                             DispatchQueue.main.async {
                                 self.isProcessing = false
                             }
@@ -388,7 +471,7 @@ struct ContentView: View {
                                 // Set up the callback before playing audio
                                 self.elevenLabsService.onPlaybackCompleted = {
                                     // This will be called when audio playback completes
-                                    if self.isAutoTranslationEnabled {
+                                    if self.translationMode == "Auto" || self.translationMode == "Conversational" {
                                         print("Audio playback completed, restarting live recording")
                                         
                                         // Force isTranslating to false to ensure we can restart
@@ -406,7 +489,7 @@ struct ContentView: View {
                                 print("Speech synthesis error: \(error.localizedDescription)")
                                 
                                 // If speech synthesis fails, we should still restart recording in live mode
-                                if self.isAutoTranslationEnabled {
+                                if self.translationMode == "Auto" || self.translationMode == "Conversational" {
                                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
                                         self.restartLiveRecording()
                                     }
@@ -454,18 +537,16 @@ struct ContentView: View {
             print("Error resetting audio session: \(error)")
         }
         
-        // Only restart if we're in live mode and not processing
-        guard isAutoTranslationEnabled && !isProcessing else {
-            print("Cannot restart: liveMode=\(isAutoTranslationEnabled), isProcessing=\(isProcessing)")
+        // Only restart if we're in auto or conversational mode and not processing
+        guard (translationMode == "Auto" || translationMode == "Conversational") && !isProcessing else {
+            print("Cannot restart: mode=\(translationMode), isProcessing=\(isProcessing)")
             return
         }
         
         print("Conditions met for live recording restart")
         
-        // Start recording immediately rather than with a delay
-        // The speech detection logic will prevent premature translations
         if self.usageManager.canMakeTranslation() {
-            print("Starting new recording session in live mode (waiting for speech)")
+            print("Starting new recording session in \(translationMode) mode (waiting for speech)")
             if self.usageManager.startTranslation() {
                 // Make absolutely sure isTranslating is false before calling startTranslating
                 self.isTranslating = false
@@ -518,11 +599,12 @@ struct ContentView: View {
     private var buttonLabel: String {
         if isProcessing {
             return "Processing..."
-        } else if isAutoTranslationEnabled {
+        } else if translationMode == "Auto" || translationMode == "Conversational" {
             if isTranslating {
                 return "Speaking... (Tap to stop)"
             } else {
-                return "Tap to Start Conversation"
+                return translationMode == "Conversational" ? 
+                    "Tap to Start Conversation" : "Tap to Start Translation"
             }
         } else {
             return isTranslating ? "Tap to Translate" : "Tap to Speak"
