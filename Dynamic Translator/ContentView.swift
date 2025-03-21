@@ -497,7 +497,7 @@ struct ContentView: View {
     private func levelColor(for threshold: Float, currentLevel: Float) -> Color {
         if currentLevel >= threshold {
             // Gradient from green to yellow to red as level increases
-            let intensity = min(1.0, (currentLevel - threshold) / 25.0)
+            let intensity = Double(min(1.0, (currentLevel - threshold) / 25.0))
             if intensity < 0.5 {
                 return .green.opacity(0.7 + intensity * 0.6)
             } else {

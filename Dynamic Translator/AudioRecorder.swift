@@ -12,8 +12,8 @@ class AudioRecorder: NSObject, ObservableObject, AVAudioRecorderDelegate {
     @Published var currentAudioLevel: Float = 0.0
     
     // Configuration for silence detection
-    private let silenceThreshold: Float = -50.0 // dB threshold for silence
-    private let silenceDuration: TimeInterval = 1.5 // 1.5 seconds of silence to trigger stop
+    private let silenceThreshold: Float = -20.0 // dB threshold for silence
+    private let silenceDuration: TimeInterval = 1.0 // 1.5 seconds of silence to trigger stop
     
     // Callback for silence detection
     var onSilenceDetected: (() -> Void)?
