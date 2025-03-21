@@ -403,6 +403,19 @@ struct ContentView: View {
         }
         
         if let audioData = audioRecorder.recordedData {
+            // Skip very short recordings which likely don't contain real speech
+            if audioData.count < 5000 { // Skip if less than ~0.5 seconds
+                print("Skipping very short audio segment (likely no speech)")
+                
+                // If in live mode, immediately restart recording
+                if isLiveTranslationEnabled {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                        self.restartLiveRecording()
+                    }
+                }
+                return
+            }
+            
             isProcessing = true
             processAudio(audioData: audioData)
         }
@@ -528,24 +541,22 @@ struct ContentView: View {
             return
         }
         
-        print("Conditions met, restarting in 0.5s")
+        print("Conditions met for live recording restart")
         
-        // Add a small delay to ensure audio session has fully transitioned
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-            // Check if user has available time before starting
-            if self.usageManager.canMakeTranslation() {
-                print("Starting new recording session in live mode")
-                if self.usageManager.startTranslation() {
-                    // Make absolutely sure isTranslating is false before calling startTranslating
-                    self.isTranslating = false
-                    self.startTranslating()
-                    self.startVideo()
-                } else {
-                    self.showingLimitAlert = true
-                }
+        // Start recording immediately rather than with a delay
+        // The speech detection logic will prevent premature translations
+        if self.usageManager.canMakeTranslation() {
+            print("Starting new recording session in live mode (waiting for speech)")
+            if self.usageManager.startTranslation() {
+                // Make absolutely sure isTranslating is false before calling startTranslating
+                self.isTranslating = false
+                self.startTranslating()
+                self.startVideo()
             } else {
                 self.showingLimitAlert = true
             }
+        } else {
+            self.showingLimitAlert = true
         }
     }
     

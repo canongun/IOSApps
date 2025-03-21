@@ -11,9 +11,14 @@ class AudioRecorder: NSObject, ObservableObject, AVAudioRecorderDelegate {
     @Published var recordedData: Data?
     @Published var currentAudioLevel: Float = 0.0
     
+    // Add a flag to track if speech has been detected in the current recording
+    private var speechDetected = false
+    
     // Configuration for silence detection
     private let silenceThreshold: Float = -20.0 // dB threshold for silence
-    private let silenceDuration: TimeInterval = 1.0 // 1.5 seconds of silence to trigger stop
+    private let speechThreshold: Float = -15.0 // Higher threshold to confirm speech
+    private let silenceDuration: TimeInterval = 1.0 // seconds of silence to trigger stop
+    private let minSpeechDuration: TimeInterval = 0.3 // minimum speech duration to consider valid
     
     // Callback for silence detection
     var onSilenceDetected: (() -> Void)?
@@ -24,7 +29,8 @@ class AudioRecorder: NSObject, ObservableObject, AVAudioRecorderDelegate {
             stopRecording()
         }
         
-        // Reset recorded data
+        // Reset flags
+        speechDetected = false
         recordedData = nil
         
         // Reset audio session
@@ -96,32 +102,41 @@ class AudioRecorder: NSObject, ObservableObject, AVAudioRecorderDelegate {
                 self.currentAudioLevel = averagePower
             }
             
-            // Check if we're detecting silence
-            if averagePower < self.silenceThreshold {
-                // If we're already counting silence, do nothing
-                if self.silenceTimer == nil {
-                    // Start counting silence
-                    self.silenceTimer = Timer.scheduledTimer(withTimeInterval: self.silenceDuration, repeats: false) { [weak self] _ in
-                        guard let self = self, self.isRecording else { return }
-                        
-                        print("Silence detected, stopping recording")
-                        
-                        // Important: Save the callback before stopping recording
-                        let callback = self.onSilenceDetected
-                        
-                        // Stop recording first - this sets isRecording to false
-                        self.stopRecording()
-                        
-                        // Then invoke the callback
-                        DispatchQueue.main.async {
-                            callback?()
+            // First, check if we've detected speech
+            if !self.speechDetected && averagePower > self.speechThreshold {
+                print("Speech detected! Level: \(averagePower)")
+                self.speechDetected = true
+            }
+            
+            // Only monitor for silence after speech has been detected
+            if self.speechDetected {
+                // Check if we're detecting silence
+                if averagePower < self.silenceThreshold {
+                    // If we're already counting silence, do nothing
+                    if self.silenceTimer == nil {
+                        // Start counting silence
+                        self.silenceTimer = Timer.scheduledTimer(withTimeInterval: self.silenceDuration, repeats: false) { [weak self] _ in
+                            guard let self = self, self.isRecording else { return }
+                            
+                            print("Silence after speech detected, stopping recording")
+                            
+                            // Important: Save the callback before stopping recording
+                            let callback = self.onSilenceDetected
+                            
+                            // Stop recording first - this sets isRecording to false
+                            self.stopRecording()
+                            
+                            // Then invoke the callback
+                            DispatchQueue.main.async {
+                                callback?()
+                            }
                         }
                     }
+                } else {
+                    // Reset the silence timer if audio is detected
+                    self.silenceTimer?.invalidate()
+                    self.silenceTimer = nil
                 }
-            } else {
-                // Reset the silence timer if audio is detected
-                self.silenceTimer?.invalidate()
-                self.silenceTimer = nil
             }
         }
     }
