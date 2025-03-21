@@ -173,20 +173,7 @@ struct ContentView: View {
                             showingLimitAlert = true
                         }
                     }
-                })
-                .simultaneousGesture(
-                    TapGesture(count: 2)
-                        .onEnded { _ in
-                            if isLiveTranslationEnabled && isTranslating {
-                                // Double tap in live mode fully stops the continuous cycle
-                                stopTranslating()
-                                stopVideo()
-                                // Set a flag or use a boolean to prevent auto-restart
-                                audioRecorder.onSilenceDetected = nil
-                            }
-                        }
-                )
-                {
+                }) {
                     ZStack {
                         // Background circle
                         Circle()
@@ -200,6 +187,18 @@ struct ContentView: View {
                             .scaleEffect(scale)
                     }
                 }
+                .simultaneousGesture(
+                    TapGesture(count: 2)
+                        .onEnded { _ in
+                            if isLiveTranslationEnabled && isTranslating {
+                                // Double tap in live mode fully stops the continuous cycle
+                                stopTranslating()
+                                stopVideo()
+                                // Set a flag or use a boolean to prevent auto-restart
+                                audioRecorder.onSilenceDetected = nil
+                            }
+                        }
+                )
                 .padding(.bottom, 8)
                 .disabled(isProcessing)
                 
