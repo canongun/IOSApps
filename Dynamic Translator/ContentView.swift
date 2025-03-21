@@ -104,6 +104,14 @@ struct ContentView: View {
                     .font(.caption)
                     .foregroundColor(.blue)
                 
+                if isLiveTranslationEnabled {
+                    Text("(Continuous)")
+                        .font(.caption2)
+                        .foregroundColor(.blue.opacity(0.7))
+                        .padding(.leading, -5)
+                        .padding(.top, 2)
+                }
+                
                 // Existing history button
                 Button(action: {
                     showingHistory = true
@@ -165,7 +173,20 @@ struct ContentView: View {
                             showingLimitAlert = true
                         }
                     }
-                }) {
+                })
+                .simultaneousGesture(
+                    TapGesture(count: 2)
+                        .onEnded { _ in
+                            if isLiveTranslationEnabled && isTranslating {
+                                // Double tap in live mode fully stops the continuous cycle
+                                stopTranslating()
+                                stopVideo()
+                                // Set a flag or use a boolean to prevent auto-restart
+                                audioRecorder.onSilenceDetected = nil
+                            }
+                        }
+                )
+                {
                     ZStack {
                         // Background circle
                         Circle()
@@ -340,6 +361,13 @@ struct ContentView: View {
     private func startTranslating() {
         isTranslating = true
         
+        // In live mode, we may want to clear the previous results for better UX
+        if isLiveTranslationEnabled {
+            // Leave the previous translation visible but clear the transcription
+            // This allows users to see the ongoing conversation flow
+            transcribedText = ""
+        }
+        
         // Set up silence detection callback if in live mode
         if isLiveTranslationEnabled {
             audioRecorder.onSilenceDetected = {
@@ -412,6 +440,15 @@ struct ContentView: View {
                         elevenLabsService.synthesizeSpeech(text: translatedText, language: targetLanguage) { result in
                             DispatchQueue.main.async {
                                 self.isProcessing = false
+                                
+                                // After successful translation and audio playback, 
+                                // restart recording if in live translation mode
+                                if self.isLiveTranslationEnabled {
+                                    // Create a small delay to give time for the TTS to complete
+                                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                                        self.restartLiveRecording()
+                                    }
+                                }
                             }
                             
                             switch result {
@@ -444,6 +481,26 @@ struct ContentView: View {
                 }
                 print("Transcription error: \(error.localizedDescription)")
             }
+        }
+    }
+    
+    // Add a new method to restart live recording
+    private func restartLiveRecording() {
+        // Only restart if we're in live mode and not already recording
+        guard isLiveTranslationEnabled && !isTranslating && !isProcessing else {
+            return
+        }
+        
+        // Check if user has available time before starting
+        if usageManager.canMakeTranslation() {
+            if usageManager.startTranslation() {
+                startTranslating()
+                startVideo()
+            } else {
+                showingLimitAlert = true
+            }
+        } else {
+            showingLimitAlert = true
         }
     }
     
@@ -488,7 +545,11 @@ struct ContentView: View {
         if isProcessing {
             return "Processing..."
         } else if isLiveTranslationEnabled {
-            return isTranslating ? "Speaking... (Auto)" : "Tap to Speak"
+            if isTranslating {
+                return "Speaking... (Double-tap to stop)"
+            } else {
+                return "Tap to Start Conversation"
+            }
         } else {
             return isTranslating ? "Tap to Translate" : "Tap to Speak"
         }
