@@ -60,21 +60,23 @@ class ElevenLabsService: NSObject, AVAudioPlayerDelegate {
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue(apiKey, forHTTPHeaderField: "xi-api-key")
         
-        // For non-English languages, use multilingual model
-        let modelID = language == "English" ? "eleven_monolingual_v1" : "eleven_multilingual_v2"
+        // Use the faster Flash v2.5 model for all languages
+        // This model has ~75ms latency and supports all required languages
+        let modelID = "eleven_flash_v2_5"
         
+        // Optimization: Adjust voice settings for faster generation
         let requestBody: [String: Any] = [
             "text": text,
             "model_id": modelID,
             "voice_settings": [
-                "stability": 0.5,
-                "similarity_boost": 0.5
+                "stability": 0.3,        // Lower stability for faster generation 
+                "similarity_boost": 0.3  // Lower similarity boost for faster generation
             ]
         ]
         
         // Log request details
         print("ElevenLabs request to: \(url.absoluteString)")
-        print("Using model: \(modelID)")
+        print("Using model: \(modelID) (optimized for speed)")
         print("Text to synthesize: \(text)")
         
         do {
