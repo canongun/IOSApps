@@ -69,8 +69,8 @@ class ElevenLabsService: NSObject, AVAudioPlayerDelegate {
             "text": text,
             "model_id": modelID,
             "voice_settings": [
-                "stability": 0.3,        // Lower stability for faster generation 
-                "similarity_boost": 0.3  // Lower similarity boost for faster generation
+                "stability": 0.5,        // Lower stability for faster generation
+                "similarity_boost": 0.8  // Lower similarity boost for faster generation
             ]
         ]
         
