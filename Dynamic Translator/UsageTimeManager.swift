@@ -40,6 +40,7 @@ class UsageTimeManager: ObservableObject {
     // Private properties for tracking
     private var translationStartTime: Date?
     private var isCurrentlyTranslating = false
+    private var isCurrentSessionTranscriptionOnly = false
     private let userDefaults = UserDefaults.standard
     
     // UserDefaults keys
@@ -78,42 +79,57 @@ class UsageTimeManager: ObservableObject {
         checkForMonthlyReset()
     }
     
-    // Begin tracking translation time
-    func startTranslation() -> Bool {
+    // Begin tracking translation time - now with transcription mode flag
+    func startTranslation(isTranscriptionOnly: Bool = false) -> Bool {
         // Check if user can make a translation
         if canMakeTranslation() {
             translationStartTime = Date()
             isCurrentlyTranslating = true
+            isCurrentSessionTranscriptionOnly = isTranscriptionOnly
             return true
         }
         return false
     }
     
-    // End tracking and calculate used time
-    func stopTranslation() -> TimeInterval? {
+    // End tracking and calculate used time - now with transcription mode consideration
+    func stopTranslation(isTranscriptionOnly: Bool = false) -> TimeInterval? {
         guard isCurrentlyTranslating, let startTime = translationStartTime else {
             return nil
         }
         
         isCurrentlyTranslating = false
         let endTime = Date()
-        let timeUsed = endTime.timeIntervalSince(startTime) / 60.0 // Convert to minutes
+        var timeUsed = endTime.timeIntervalSince(startTime) / 60.0 // Convert to minutes
         
-        // Only subtract time if translation was successful
-        // This will be called after successful processing
+        // For transcription-only mode, we charge half the time
+        // Note: We use the flag from when the session started, not the one passed here
+        if isCurrentSessionTranscriptionOnly {
+            timeUsed = timeUsed / 2.0
+        }
+        
+        // Reset the flag
+        isCurrentSessionTranscriptionOnly = false
+        
         return timeUsed
     }
     
-    // Confirm usage of time (call after successful translation)
-    func confirmUsage(minutes: Double) {
+    // Confirm usage of time (call after successful translation) - updated for transcription mode
+    func confirmUsage(minutes: Double, isTranscriptionOnly: Bool = false) {
         DispatchQueue.main.async {
-            // First use additional credits if available
-            let minutesToDeduct = min(minutes, max(0, self.remainingMinutes))
+            // If this is a transcription-only confirmation but the original session wasn't marked as such,
+            // we need to adjust the time accordingly
+            var adjustedMinutes = minutes
+            if isTranscriptionOnly && !self.isCurrentSessionTranscriptionOnly {
+                adjustedMinutes = minutes / 2.0
+            }
+            
+            // First use subscription minutes if available
+            let minutesToDeduct = min(adjustedMinutes, max(0, self.remainingMinutes))
             self.remainingMinutes -= minutesToDeduct
             
             // Use credits for any remaining time
-            if minutes > minutesToDeduct && self.additionalCreditMinutes > 0 {
-                let creditMinutesToUse = min(minutes - minutesToDeduct, self.additionalCreditMinutes)
+            if adjustedMinutes > minutesToDeduct && self.additionalCreditMinutes > 0 {
+                let creditMinutesToUse = min(adjustedMinutes - minutesToDeduct, self.additionalCreditMinutes)
                 self.additionalCreditMinutes -= creditMinutesToUse
             }
             
