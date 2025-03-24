@@ -7,6 +7,10 @@ struct LiveTranscriptionView: View {
     private let deepgramService = DeepgramService()
     private let translationService = TranslationService()
     
+    // Add transcription history
+    @StateObject private var transcriptionHistory = LiveTranscriptionHistory()
+    @State private var showingHistory = false
+    
     // Environment
     @Environment(\.dismiss) private var dismiss
     @EnvironmentObject var usageManager: UsageTimeManager
@@ -57,6 +61,16 @@ struct LiveTranscriptionView: View {
                 }
                 
                 Spacer()
+                
+                // Add history button
+                Button(action: {
+                    showingHistory = true
+                }) {
+                    Image(systemName: "clock.arrow.circlepath")
+                        .font(.system(size: 20))
+                        .foregroundColor(.blue)
+                }
+                .padding(.horizontal, 8)
                 
                 Menu {
                     ForEach(availableLanguages, id: \.self) { language in
@@ -218,6 +232,9 @@ struct LiveTranscriptionView: View {
                 stopRecording()
             }
         }
+        .sheet(isPresented: $showingHistory) {
+            LiveTranscriptionHistoryView(transcriptionHistory: transcriptionHistory)
+        }
     }
     
     private func startRecording() {
@@ -313,6 +330,14 @@ struct LiveTranscriptionView: View {
                                         self.transcriptionSegments.append(newSegment)
                                         self.transcribedText = ""
                                         self.translatedText = ""
+                                        
+                                        // Save to history
+                                        self.transcriptionHistory.addEntry(
+                                            originalText: text,
+                                            translatedText: translatedText,
+                                            sourceLanguage: detectedLang,
+                                            targetLanguage: self.targetLanguage
+                                        )
                                     }
                                     
                                 case .failure(let error):

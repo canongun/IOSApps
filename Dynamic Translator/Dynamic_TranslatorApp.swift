@@ -12,12 +12,14 @@ import StoreKit
 struct Dynamic_TranslatorApp: App {
     @StateObject private var usageManager = UsageTimeManager()
     @StateObject private var subscriptionService = SubscriptionService()
+    @StateObject private var liveTranscriptionHistory = LiveTranscriptionHistory()
     
     var body: some Scene {
         WindowGroup {
             ContentView()
                 .environmentObject(usageManager)
                 .environmentObject(subscriptionService)
+                .environmentObject(liveTranscriptionHistory)
         }
     }
     
