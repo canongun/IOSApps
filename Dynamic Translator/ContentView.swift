@@ -69,6 +69,8 @@ struct ContentView: View {
     @State private var availableModes = ["Manual", "Auto", "Conversational"]
     @State private var secondaryLanguage = "English"
     
+    @State private var showingFeedbackView = false
+    
     var body: some View {
         VStack {
             // Replace the current mode toggle with a dropdown
@@ -124,6 +126,16 @@ struct ContentView: View {
                     showingHistory = true
                 }) {
                     Image(systemName: "clock.arrow.circlepath")
+                        .font(.system(size: 22))
+                        .foregroundColor(.blue)
+                        .padding()
+                }
+                
+                // Add new feedback button
+                Button(action: {
+                    showingFeedbackView = true
+                }) {
+                    Image(systemName: "lightbulb")
                         .font(.system(size: 22))
                         .foregroundColor(.blue)
                         .padding()
@@ -321,6 +333,9 @@ struct ContentView: View {
                 usageManager: usageManager,
                 subscriptionService: subscriptionService
             )
+        }
+        .sheet(isPresented: $showingFeedbackView) {
+            FeedbackView()
         }
         .alert("Translation Time Limit Reached", isPresented: $showingLimitAlert) {
             Button("Get More Time", role: .none) {
