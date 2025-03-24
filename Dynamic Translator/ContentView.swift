@@ -66,10 +66,12 @@ struct ContentView: View {
     @State private var isAutoTranslationEnabled = false
     
     @State private var translationMode = "Manual"
-    @State private var availableModes = ["Manual", "Auto", "Conversational"]
+    @State private var availableModes = ["Manual", "Auto", "Conversational", "Transcription"]
     @State private var secondaryLanguage = "English"
     
     @State private var showingFeedbackView = false
+    
+    @State private var showingLiveTranscription = false
     
     var body: some View {
         VStack {
@@ -101,9 +103,15 @@ struct ContentView: View {
                                 if isTranslating {
                                     stopTranslating()
                                 }
-                                translationMode = mode
-                                // Reset isAutoTranslationEnabled based on mode
-                                isAutoTranslationEnabled = (mode == "Auto")
+                                
+                                if mode == "Transcription" {
+                                    // Show the Live Transcription view
+                                    showingLiveTranscription = true
+                                } else {
+                                    translationMode = mode
+                                    // Reset isAutoTranslationEnabled based on mode
+                                    isAutoTranslationEnabled = (mode == "Auto")
+                                }
                             }
                         }
                     }
@@ -347,6 +355,10 @@ struct ContentView: View {
         }
         .onAppear {
             requestMicrophonePermission()
+        }
+        .fullScreenCover(isPresented: $showingLiveTranscription) {
+            LiveTranscriptionView()
+                .environmentObject(usageManager)
         }
     }
     
