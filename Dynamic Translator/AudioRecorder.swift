@@ -14,11 +14,27 @@ class AudioRecorder: NSObject, ObservableObject, AVAudioRecorderDelegate {
     // Add a flag to track if speech has been detected in the current recording
     private var speechDetected = false
     
+    // Replace fixed thresholds with adaptive ones
+    private var silenceThreshold: Float = -21.0 // Will be adjusted dynamically
+    private var speechThreshold: Float = -18.0 // Will be adjusted dynamically
+    
+    // Add parameters for noise adaptation
+    private var ambientNoiseLevel: Float = -60.0 // Starting assumption for quiet environment
+    private var isCalibrating = false
+    private var calibrationSamples = [Float]()
+    private let calibrationDuration: TimeInterval = 0.75 // seconds to calibrate
+    private let speechMargin: Float = 6.0 // dB above ambient to consider as speech
+    private let silenceMargin: Float = 3.0 // dB above ambient to distinguish from silence
+    
     // Configuration for silence detection
-    private let silenceThreshold: Float = -21.0 // dB threshold for silence
-    private let speechThreshold: Float = -18.0 // Higher threshold to confirm speech
     private let silenceDuration: TimeInterval = 1.0 // seconds of silence to trigger stop
     private let minSpeechDuration: TimeInterval = 0.3 // minimum speech duration to consider valid
+    
+    // For ongoing noise adaptation
+    private var recentLevels = [Float]()
+    private let recentLevelMaxCount = 20 // Keep track of recent levels for adaptation
+    private var adaptationCounter = 0
+    private let adaptationInterval = 10 // Adapt every N samples
     
     // Callback for silence detection
     var onSilenceDetected: (() -> Void)?
@@ -32,6 +48,11 @@ class AudioRecorder: NSObject, ObservableObject, AVAudioRecorderDelegate {
         // Reset flags
         speechDetected = false
         recordedData = nil
+        
+        // Reset calibration state
+        isCalibrating = true
+        calibrationSamples = []
+        recentLevels = []
         
         // Reset audio session
         let audioSession = AVAudioSession.sharedInstance()
@@ -105,9 +126,33 @@ class AudioRecorder: NSObject, ObservableObject, AVAudioRecorderDelegate {
                 self.currentAudioLevel = averagePower
             }
             
+            // Handle calibration phase
+            if self.isCalibrating {
+                self.calibrationSamples.append(averagePower)
+                
+                // Check if we've collected enough samples for calibration
+                if self.calibrationSamples.count >= Int(self.calibrationDuration / 0.1) {
+                    self.finishCalibration()
+                }
+                return
+            }
+            
+            // Add to recent levels for ongoing adaptation
+            self.recentLevels.append(averagePower)
+            if self.recentLevels.count > self.recentLevelMaxCount {
+                self.recentLevels.removeFirst()
+            }
+            
+            // Periodically adapt thresholds to changing environment
+            self.adaptationCounter += 1
+            if self.adaptationCounter >= self.adaptationInterval {
+                self.adaptThresholds()
+                self.adaptationCounter = 0
+            }
+            
             // First, check if we've detected speech
             if !self.speechDetected && averagePower > self.speechThreshold {
-                print("Speech detected! Level: \(averagePower)")
+                print("Speech detected! Level: \(averagePower), Threshold: \(self.speechThreshold)")
                 self.speechDetected = true
             }
             
@@ -141,6 +186,64 @@ class AudioRecorder: NSObject, ObservableObject, AVAudioRecorderDelegate {
                     self.silenceTimer = nil
                 }
             }
+        }
+    }
+    
+    // New method to finish calibration and set initial thresholds
+    private func finishCalibration() {
+        guard !calibrationSamples.isEmpty else { return }
+        
+        // Sort samples and take the median to avoid outliers
+        let sortedSamples = calibrationSamples.sorted()
+        let medianIndex = sortedSamples.count / 2
+        ambientNoiseLevel = sortedSamples[medianIndex]
+        
+        // Set thresholds relative to ambient noise
+        updateThresholdsBasedOnAmbient()
+        
+        // Mark calibration as complete
+        isCalibrating = false
+        
+        print("Calibration complete. Ambient level: \(ambientNoiseLevel)dB, Speech threshold: \(speechThreshold)dB, Silence threshold: \(silenceThreshold)dB")
+    }
+    
+    // New method for updating thresholds based on ambient level
+    private func updateThresholdsBasedOnAmbient() {
+        // Use ambient noise plus margins to set thresholds
+        // Ensure there's a minimum dB value even in very quiet environments
+        speechThreshold = max(-35.0, ambientNoiseLevel + speechMargin)
+        silenceThreshold = max(-40.0, ambientNoiseLevel + silenceMargin)
+        
+        // Ensure the speech threshold is always above silence threshold
+        if speechThreshold <= silenceThreshold {
+            speechThreshold = silenceThreshold + 3.0
+        }
+    }
+    
+    // New method for ongoing adaptation
+    private func adaptThresholds() {
+        guard recentLevels.count >= 5 else { return } // Need enough samples
+        
+        // Filter out likely speech samples to find the ambient noise
+        let sortedLevels = recentLevels.sorted()
+        let lowerThird = Int(Double(sortedLevels.count) * 0.33)
+        
+        // Use lower third of samples to estimate ambient noise
+        var sum: Float = 0
+        for i in 0..<lowerThird {
+            if i < sortedLevels.count {
+                sum += sortedLevels[i]
+            }
+        }
+        
+        let newAmbientEstimate = sum / Float(lowerThird)
+        
+        // Only update if there's a significant change (prevents constant small adjustments)
+        if abs(newAmbientEstimate - ambientNoiseLevel) > 3.0 {
+            ambientNoiseLevel = newAmbientEstimate
+            updateThresholdsBasedOnAmbient()
+            
+            print("Adapted thresholds. New ambient: \(ambientNoiseLevel)dB, Speech: \(speechThreshold)dB, Silence: \(silenceThreshold)dB")
         }
     }
     
