@@ -13,31 +13,31 @@ struct ContentView: View {
     @State private var isTranslating = false
     @State private var targetLanguage = "English"
     @State private var availableLanguages = [
-        "Bulgarian", 
-        "Chinese", 
+        "Bulgarian",
+        "Chinese",
         "Czech",
-        "Danish", 
-        "Dutch", 
-        "English", 
+        "Danish",
+        "Dutch",
+        "English",
         "Finnish",
-        "French", 
-        "German", 
+        "French",
+        "German",
         "Greek",
-        "Hindi", 
+        "Hindi",
         "Indonesian",
-        "Italian", 
-        "Japanese", 
+        "Italian",
+        "Japanese",
         "Korean",
         "Malay",
         "Norwegian",
         "Polish",
-        "Portuguese", 
+        "Portuguese",
         "Romanian",
         "Russian",
         "Slovak",
-        "Spanish", 
+        "Spanish",
         "Swedish",
-        "Turkish", 
+        "Turkish",
         "Ukrainian",
         "Vietnamese"
     ]
@@ -425,6 +425,32 @@ struct ContentView: View {
             case .success(let transcriptionResult):
                 print("Transcription successful: \(transcriptionResult.text)")
                 
+                // IMPORTANT FIX: Check for empty transcription
+                guard !transcriptionResult.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+                    // Handle empty transcription result
+                    print("Empty transcription detected, skipping translation")
+                    
+                    DispatchQueue.main.async {
+                        self.isProcessing = false
+                        
+                        // Update UI to inform user
+                        self.transcribedText = "Speech not detected"
+                        self.translatedText = "I couldn't catch what you said. Could you please speak again?"
+                        
+                        // Play a short feedback message
+                        self.provideEmptyTranscriptionFeedback()
+                        
+                        // If in auto or conversational mode, restart recording after a short delay
+                        if self.translationMode == "Auto" || self.translationMode == "Conversational" {
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+                                self.restartLiveRecording()
+                            }
+                        }
+                    }
+                    return
+                }
+                
+                // Rest of the existing code for normal transcription processing
                 var detectedLanguageCode = ""
                 // Update detected language from transcription metadata
                 if let metadata = transcriptionResult.metadata,
@@ -442,8 +468,7 @@ struct ContentView: View {
                     self.transcribedText = transcriptionResult.text
                 }
                 
-                // KEY CHANGE: Start translation immediately without waiting for UI updates
-                // This allows parallel processing instead of sequential
+                // Continue with translation
                 self.initiateTranslation(
                     text: transcriptionResult.text,
                     detectedLanguageCode: detectedLanguageCode
@@ -512,7 +537,7 @@ struct ContentView: View {
                                 
                                 // Force isTranslating to false to ensure we can restart
                                 DispatchQueue.main.async {
-                                    self.isTranslating = false 
+                                    self.isTranslating = false
                                     self.restartLiveRecording()
                                 }
                             }
@@ -631,7 +656,7 @@ struct ContentView: View {
             if isTranslating {
                 return "Speaking... (Tap to stop)"
             } else {
-                return translationMode == "Conversational" ? 
+                return translationMode == "Conversational" ?
                     "Tap to Start Conversation" : "Tap to Start Translation"
             }
         } else {
@@ -650,6 +675,19 @@ struct ContentView: View {
             }
         } else {
             return .gray.opacity(0.3)
+        }
+    }
+    
+    // Add this new helper method
+    private func provideEmptyTranscriptionFeedback() {
+        // Just use screen feedback without voice synthesis
+        // This saves ElevenLabs API calls and costs
+        
+        // If in auto or conversational mode, wait briefly then restart recording
+        if self.translationMode == "Auto" || self.translationMode == "Conversational" {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+                self.restartLiveRecording()
+            }
         }
     }
 }

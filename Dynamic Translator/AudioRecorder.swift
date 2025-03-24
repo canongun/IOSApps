@@ -15,8 +15,8 @@ class AudioRecorder: NSObject, ObservableObject, AVAudioRecorderDelegate {
     private var speechDetected = false
     
     // Configuration for silence detection
-    private let silenceThreshold: Float = -20.0 // dB threshold for silence
-    private let speechThreshold: Float = -15.0 // Higher threshold to confirm speech
+    private let silenceThreshold: Float = -21.0 // dB threshold for silence
+    private let speechThreshold: Float = -18.0 // Higher threshold to confirm speech
     private let silenceDuration: TimeInterval = 1.0 // seconds of silence to trigger stop
     private let minSpeechDuration: TimeInterval = 0.3 // minimum speech duration to consider valid
     
