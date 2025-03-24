@@ -84,6 +84,7 @@ class AudioRecorder: NSObject, ObservableObject, AVAudioRecorderDelegate {
         if let url = audioRecorder?.url {
             do {
                 recordedData = try Data(contentsOf: url)
+                try? FileManager.default.removeItem(at: url)
             } catch {
                 print("Failed to load recorded audio: \(error.localizedDescription)")
             }

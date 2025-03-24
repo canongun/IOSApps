@@ -16,6 +16,13 @@ class DeepgramService {
     private let apiKey = Configuration.deepgramAPIKey // Now safely referenced
     private let baseURL = "https://api.deepgram.com/v1/listen"
     
+    // Use a more configurable URLSession with timeout
+    private lazy var apiSession: URLSession = {
+        let config = URLSessionConfiguration.default
+        config.timeoutIntervalForRequest = 8 // Shorter timeout for faster failure/recovery
+        return URLSession(configuration: config)
+    }()
+    
     func transcribeAudio(audioData: Data, completion: @escaping (Result<TranscriptionResult, Error>) -> Void) {
         // Create URL with query parameters for language detection
         let urlString = "\(baseURL)?model=nova-2&detect_language=true"
@@ -27,8 +34,8 @@ class DeepgramService {
         request.setValue("Token \(apiKey)", forHTTPHeaderField: "Authorization")
         request.httpBody = audioData
         
-        // Create URLSession task
-        let task = URLSession.shared.dataTask(with: request) { data, response, error in
+        // Use the optimized session
+        let task = apiSession.dataTask(with: request) { data, response, error in
             if let error = error {
                 completion(.failure(error))
                 return

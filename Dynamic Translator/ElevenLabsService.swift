@@ -42,6 +42,9 @@ class ElevenLabsService: NSObject, AVAudioPlayerDelegate {
     
     private var audioPlayer: AVAudioPlayer?
     
+    // Add a property to track callback status
+    private var isHandlingCompletion = false
+    
     func synthesizeSpeech(text: String, language: String = "English", completion: @escaping (Result<Data, Error>) -> Void) {
         // Get the appropriate voice ID for the language
         let voiceID = ElevenLabsService.voiceIDMap[language] ?? defaultVoiceID
@@ -206,9 +209,14 @@ class ElevenLabsService: NSObject, AVAudioPlayerDelegate {
     func audioPlayerDidFinishPlaying(_ player: AVAudioPlayer, successfully flag: Bool) {
         print("Audio playback finished, success: \(flag)")
         
+        // Prevent multiple callbacks
+        guard !isHandlingCompletion else { return }
+        isHandlingCompletion = true
+        
         // Notify that playback is complete
         DispatchQueue.main.async {
             self.onPlaybackCompleted?()
+            self.isHandlingCompletion = false
         }
     }
 }

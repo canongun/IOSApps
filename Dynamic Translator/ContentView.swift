@@ -430,101 +430,114 @@ struct ContentView: View {
                 if let metadata = transcriptionResult.metadata,
                    let languageCode = metadata.detectedLanguage {
                     detectedLanguageCode = languageCode
+                    
+                    // Update UI with detected language
                     DispatchQueue.main.async {
                         self.detectedLanguage = self.languageCodeToName(languageCode)
                     }
                 }
                 
+                // Update UI with transcribed text
                 DispatchQueue.main.async {
                     self.transcribedText = transcriptionResult.text
                 }
                 
-                // Determine which language to translate to based on the mode
-                var translationTarget = self.targetLanguage
+                // KEY CHANGE: Start translation immediately without waiting for UI updates
+                // This allows parallel processing instead of sequential
+                self.initiateTranslation(
+                    text: transcriptionResult.text,
+                    detectedLanguageCode: detectedLanguageCode
+                )
                 
-                if self.translationMode == "Conversational" {
-                    // In conversational mode, translate to the other language
-                    let detectedLanguageName = self.languageCodeToName(detectedLanguageCode)
+            case .failure(let error):
+                DispatchQueue.main.async {
+                    self.isProcessing = false
+                }
+                print("Transcription error: \(error.localizedDescription)")
+            }
+        }
+    }
+    
+    // New method to separate translation logic for better parallel processing
+    private func initiateTranslation(text: String, detectedLanguageCode: String) {
+        // Determine which language to translate to based on the mode
+        var translationTarget = self.targetLanguage
+        
+        if self.translationMode == "Conversational" {
+            // In conversational mode, translate to the other language
+            let detectedLanguageName = self.languageCodeToName(detectedLanguageCode)
+            
+            if detectedLanguageName.lowercased() == self.targetLanguage.lowercased() {
+                translationTarget = self.secondaryLanguage
+            } else if detectedLanguageName.lowercased() == self.secondaryLanguage.lowercased() {
+                translationTarget = self.targetLanguage
+            } else {
+                // If detected language doesn't match either selected language,
+                // default to the first selected language
+                translationTarget = self.targetLanguage
+            }
+            
+            print("Conversational mode: Detected \(detectedLanguageName), translating to \(translationTarget)")
+        }
+        
+        // Step 2: Translate the transcribed text to the determined target
+        translationService.translateText(text: text, targetLanguage: translationTarget) { result in
+            switch result {
+            case .success(let translatedText):
+                DispatchQueue.main.async {
+                    self.translatedText = translatedText
                     
-                    if detectedLanguageName.lowercased() == self.targetLanguage.lowercased() {
-                        translationTarget = self.secondaryLanguage
-                    } else if detectedLanguageName.lowercased() == self.secondaryLanguage.lowercased() {
-                        translationTarget = self.targetLanguage
-                    } else {
-                        // If detected language doesn't match either selected language,
-                        // default to the first selected language
-                        translationTarget = self.targetLanguage
-                    }
-                    
-                    print("Conversational mode: Detected \(detectedLanguageName), translating to \(translationTarget)")
+                    // Save to conversation history
+                    self.conversationHistory.addEntry(
+                        originalText: text,
+                        translatedText: translatedText,
+                        sourceLanguage: self.detectedLanguage,
+                        targetLanguage: translationTarget
+                    )
                 }
                 
-                // Step 2: Translate the transcribed text to the determined target
-                translationService.translateText(text: transcriptionResult.text, targetLanguage: translationTarget) { result in
+                // Step 3: Convert translated text to speech using ElevenLabs
+                self.elevenLabsService.synthesizeSpeech(text: translatedText, language: translationTarget) { result in
+                    DispatchQueue.main.async {
+                        self.isProcessing = false
+                    }
+                    
                     switch result {
-                    case .success(let translatedText):
-                        DispatchQueue.main.async {
-                            self.translatedText = translatedText
-                            
-                            // Save to conversation history
-                            self.conversationHistory.addEntry(
-                                originalText: self.transcribedText,
-                                translatedText: translatedText,
-                                sourceLanguage: self.detectedLanguage,
-                                targetLanguage: translationTarget
-                            )
-                        }
-                        
-                        // Step 3: Convert translated text to speech using ElevenLabs
-                        elevenLabsService.synthesizeSpeech(text: translatedText, language: translationTarget) { result in
-                            DispatchQueue.main.async {
-                                self.isProcessing = false
-                            }
-                            
-                            switch result {
-                            case .success(let audioData):
-                                // Set up the callback before playing audio
-                                self.elevenLabsService.onPlaybackCompleted = {
-                                    // This will be called when audio playback completes
-                                    if self.translationMode == "Auto" || self.translationMode == "Conversational" {
-                                        print("Audio playback completed, restarting live recording")
-                                        
-                                        // Force isTranslating to false to ensure we can restart
-                                        DispatchQueue.main.async {
-                                            self.isTranslating = false 
-                                            self.restartLiveRecording()
-                                        }
-                                    }
-                                }
+                    case .success(let audioData):
+                        // Set up the callback before playing audio
+                        self.elevenLabsService.onPlaybackCompleted = {
+                            // This will be called when audio playback completes
+                            if self.translationMode == "Auto" || self.translationMode == "Conversational" {
+                                print("Audio playback completed, restarting live recording")
                                 
-                                // Now play the audio
-                                self.elevenLabsService.playAudio(data: audioData)
-                                
-                            case .failure(let error):
-                                print("Speech synthesis error: \(error.localizedDescription)")
-                                
-                                // If speech synthesis fails, we should still restart recording in live mode
-                                if self.translationMode == "Auto" || self.translationMode == "Conversational" {
-                                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                                        self.restartLiveRecording()
-                                    }
+                                // Force isTranslating to false to ensure we can restart
+                                DispatchQueue.main.async {
+                                    self.isTranslating = false 
+                                    self.restartLiveRecording()
                                 }
                             }
                         }
                         
-                        // After successful translation, dispatch to main thread:
-                        DispatchQueue.main.async {
-                            if let timeUsed = self.usageManager.stopTranslation() {
-                                // Only confirm usage after successful processing
-                                self.usageManager.confirmUsage(minutes: timeUsed)
-                            }
-                        }
+                        // Now play the audio
+                        self.elevenLabsService.playAudio(data: audioData)
                         
                     case .failure(let error):
-                        DispatchQueue.main.async {
-                            self.isProcessing = false
+                        print("Speech synthesis error: \(error.localizedDescription)")
+                        
+                        // If speech synthesis fails, we should still restart recording in live mode
+                        if self.translationMode == "Auto" || self.translationMode == "Conversational" {
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                                self.restartLiveRecording()
+                            }
                         }
-                        print("Translation error: \(error.localizedDescription)")
+                    }
+                }
+                
+                // After successful translation, dispatch to main thread:
+                DispatchQueue.main.async {
+                    if let timeUsed = self.usageManager.stopTranslation() {
+                        // Only confirm usage after successful processing
+                        self.usageManager.confirmUsage(minutes: timeUsed)
                     }
                 }
                 
@@ -532,7 +545,7 @@ struct ContentView: View {
                 DispatchQueue.main.async {
                     self.isProcessing = false
                 }
-                print("Transcription error: \(error.localizedDescription)")
+                print("Translation error: \(error.localizedDescription)")
             }
         }
     }
