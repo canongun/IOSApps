@@ -43,6 +43,9 @@ struct LiveTranscriptionView: View {
     @State private var elapsedSeconds: Int = 0
     @State private var timer: Timer? = nil
     
+    // ScrollViewReader state
+    @State private var scrollToBottom = false
+    
     var body: some View {
         VStack {
             // Header
@@ -110,70 +113,91 @@ struct LiveTranscriptionView: View {
             .padding()
             
             ScrollView {
-                VStack(alignment: .leading, spacing: 16) {
-                    if transcriptionSegments.isEmpty && !isRecording {
-                        Text("Tap the microphone button to start live transcription and translation")
-                            .foregroundColor(.gray)
-                            .frame(maxWidth: .infinity, alignment: .center)
-                            .padding(.top, 100)
-                    } else {
-                        ForEach(transcriptionSegments) { segment in
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text(segment.text)
-                                    .padding()
-                                    .background(Color.gray.opacity(0.1))
-                                    .cornerRadius(8)
-                                
-                                if !segment.translatedText.isEmpty {
-                                    Text(segment.translatedText)
+                ScrollViewReader { scrollViewProxy in
+                    VStack(alignment: .leading, spacing: 16) {
+                        if transcriptionSegments.isEmpty && !isRecording {
+                            Text("Tap the microphone button to start live transcription and translation")
+                                .foregroundColor(.gray)
+                                .frame(maxWidth: .infinity, alignment: .center)
+                                .padding(.top, 100)
+                        } else {
+                            ForEach(transcriptionSegments) { segment in
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text(segment.text)
                                         .padding()
-                                        .background(Color.blue.opacity(0.1))
+                                        .background(Color.gray.opacity(0.1))
                                         .cornerRadius(8)
-                                }
-                                
-                                HStack {
-                                    if segment.language != "Unknown" {
-                                        Text("Detected: \(segment.language)")
+                                    
+                                    if !segment.translatedText.isEmpty {
+                                        Text(segment.translatedText)
+                                            .padding()
+                                            .background(Color.blue.opacity(0.1))
+                                            .cornerRadius(8)
+                                    }
+                                    
+                                    HStack {
+                                        if segment.language != "Unknown" {
+                                            Text("Detected: \(segment.language)")
+                                                .font(.caption)
+                                                .foregroundColor(.gray)
+                                        }
+                                        
+                                        Spacer()
+                                        
+                                        Text(segment.timestamp)
                                             .font(.caption)
                                             .foregroundColor(.gray)
                                     }
-                                    
-                                    Spacer()
-                                    
-                                    Text(segment.timestamp)
-                                        .font(.caption)
-                                        .foregroundColor(.gray)
+                                    .padding(.horizontal)
                                 }
-                                .padding(.horizontal)
                             }
-                        }
-                        
-                        if !transcribedText.isEmpty {
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text(transcribedText)
-                                    .padding()
-                                    .background(Color.gray.opacity(0.1))
-                                    .cornerRadius(8)
-                                
-                                if !translatedText.isEmpty {
-                                    Text(translatedText)
+                            
+                            if !transcribedText.isEmpty {
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text(transcribedText)
                                         .padding()
-                                        .background(Color.green.opacity(0.1))
+                                        .background(Color.gray.opacity(0.1))
                                         .cornerRadius(8)
+                                    
+                                    if !translatedText.isEmpty {
+                                        Text(translatedText)
+                                            .padding()
+                                            .background(Color.green.opacity(0.1))
+                                            .cornerRadius(8)
+                                    }
+                                    
+                                    if detectedLanguage != "Unknown" {
+                                        Text("Detected: \(detectedLanguage)")
+                                            .font(.caption)
+                                            .foregroundColor(.gray)
+                                            .padding(.horizontal)
+                                    }
                                 }
-                                
-                                if detectedLanguage != "Unknown" {
-                                    Text("Detected: \(detectedLanguage)")
-                                        .font(.caption)
-                                        .foregroundColor(.gray)
-                                        .padding(.horizontal)
-                                }
+                                .padding(.top, 8)
                             }
-                            .padding(.top, 8)
+                            
+                            // Add this invisible element at the bottom for auto-scrolling
+                            Color.clear
+                                .frame(height: 1)
+                                .id("bottomID")
+                        }
+                    }
+                    .padding()
+                    .onChange(of: transcriptionSegments) { _ in
+                        // Scroll to bottom when new segments are added
+                        withAnimation {
+                            scrollViewProxy.scrollTo("bottomID", anchor: .bottom)
+                        }
+                    }
+                    .onChange(of: transcribedText) { _ in
+                        // Also scroll when current transcription changes
+                        if !transcribedText.isEmpty {
+                            withAnimation {
+                                scrollViewProxy.scrollTo("bottomID", anchor: .bottom)
+                            }
                         }
                     }
                 }
-                .padding()
             }
             
             if isRecording {
@@ -459,10 +483,14 @@ struct LiveTranscriptionView: View {
     }
 }
 
-struct TranscriptionSegment: Identifiable {
+struct TranscriptionSegment: Identifiable, Equatable {
     let id: UUID
     let text: String
     let translatedText: String
     let language: String
     let timestamp: String
+    
+    static func == (lhs: TranscriptionSegment, rhs: TranscriptionSegment) -> Bool {
+        return lhs.id == rhs.id
+    }
 }
