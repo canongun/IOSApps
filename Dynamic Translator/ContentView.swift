@@ -5,8 +5,8 @@ struct ContentView: View {
     // MARK: - View Models
     @StateObject private var viewModel = TranslationViewModel()
     @StateObject private var conversationHistory = ConversationHistory()
-    @StateObject private var usageManager = UsageTimeManager()
-    @StateObject private var subscriptionService = SubscriptionService()
+    @EnvironmentObject var usageManager: UsageTimeManager
+    @EnvironmentObject var subscriptionService: SubscriptionService
     
     // MARK: - UI State
     @State private var showingHistory = false
