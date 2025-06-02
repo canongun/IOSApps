@@ -19,7 +19,7 @@ class TranslationViewModel: ObservableObject {
     private let deepgramService = DeepgramService()
     private let translationService = TranslationService()
     private let elevenLabsService = ElevenLabsService()
-    private let audioRecorder = AudioRecorder()
+    let audioRecorder = AudioRecorder()
     
     // MARK: - Constants
     let availableLanguages = [
