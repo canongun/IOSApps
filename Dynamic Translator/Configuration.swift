@@ -1,28 +1,34 @@
 import Foundation
 
 struct Configuration {
+
+    // Helper function to read a value from the app's Info.plist
+    private static func value<T>(for key: String) throws -> T where T: LosslessStringConvertible {
+        guard let object = Bundle.main.object(forInfoDictionaryKey: key) else {
+            throw fatalError("\(key) not set in Info.plist")
+        }
+
+        switch object {
+        case let value as T:
+            return value
+        case let string as String:
+            guard let value = T(string) else { fallthrough }
+            return value
+        default:
+            throw fatalError("Invalid value for \(key) in Info.plist")
+        }
+    }
+
     // MARK: - API Keys
     static let deepgramAPIKey: String = {
-        if let envKey = ProcessInfo.processInfo.environment["DEEPGRAM_API_KEY"] {
-            return envKey
-        }
-        // Fallback for development/testing - remove in production
-        fatalError("DEEPGRAM_API_KEY environment variable not set")
+        return try! value(for: "DEEPGRAM_API_KEY")
     }()
-    
+
     static let anthropicAPIKey: String = {
-        if let envKey = ProcessInfo.processInfo.environment["ANTHROPIC_API_KEY"] {
-            return envKey
-        }
-        // Fallback for development/testing - remove in production
-        fatalError("ANTHROPIC_API_KEY environment variable not set")
+        return try! value(for: "ANTHROPIC_API_KEY")
     }()
-    
+
     static let elevenLabsAPIKey: String = {
-        if let envKey = ProcessInfo.processInfo.environment["ELEVENLABS_API_KEY"] {
-            return envKey
-        }
-        // Fallback for development/testing - remove in production
-        fatalError("ELEVENLABS_API_KEY environment variable not set")
+        return try! value(for: "ELEVENLABS_API_KEY")
     }()
 }

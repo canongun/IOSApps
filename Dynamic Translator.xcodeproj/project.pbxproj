@@ -286,6 +286,8 @@
 /* Begin XCBuildConfiguration section */
 		36A13AE52D8383A800041A14 /* Debug */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReferenceAnchor = 36A13AC52D8383A400041A14 /* Dynamic Translator */;
+			baseConfigurationReferenceRelativePath = env.xcconfig;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
@@ -349,6 +351,8 @@
 		};
 		36A13AE62D8383A800041A14 /* Release */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReferenceAnchor = 36A13AC52D8383A400041A14 /* Dynamic Translator */;
+			baseConfigurationReferenceRelativePath = env.xcconfig;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
@@ -405,6 +409,8 @@
 		};
 		36A13AE82D8383A800041A14 /* Debug */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReferenceAnchor = 36A13AC52D8383A400041A14 /* Dynamic Translator */;
+			baseConfigurationReferenceRelativePath = env.xcconfig;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
@@ -415,6 +421,7 @@
 				DEVELOPMENT_TEAM = UB2UJV3T7Q;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "Dynamic-Translator-Info.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = LinkVoice;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "We need access to your microphone to translate your speech.";
@@ -444,6 +451,8 @@
 		};
 		36A13AE92D8383A800041A14 /* Release */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReferenceAnchor = 36A13AC52D8383A400041A14 /* Dynamic Translator */;
+			baseConfigurationReferenceRelativePath = env.xcconfig;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
@@ -453,6 +462,7 @@
 				DEVELOPMENT_TEAM = UB2UJV3T7Q;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "Dynamic-Translator-Info.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = LinkVoice;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "We need access to your microphone to translate your speech.";
