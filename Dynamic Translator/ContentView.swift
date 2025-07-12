@@ -3,11 +3,18 @@ import AVFoundation
 
 struct ContentView: View {
     // MARK: - View Models
-    @StateObject private var viewModel = TranslationViewModel()
-    @StateObject private var conversationHistory = ConversationHistory()
+    @StateObject private var viewModel: TranslationViewModel
+    @StateObject private var conversationHistory: ConversationHistory  // Updated: Make type explicit for clarity
     @EnvironmentObject var usageManager: UsageTimeManager
     @EnvironmentObject var subscriptionService: SubscriptionService
     
+    init() {
+        let history = ConversationHistory()  // New: Create shared instance first to avoid self-capture and initialization order issues
+        
+        _conversationHistory = StateObject(wrappedValue: history)
+        _viewModel = StateObject(wrappedValue: TranslationViewModel(conversationHistory: history))
+    }
+
     // MARK: - UI State
     @State private var showingHistory = false
     @State private var showingSubscriptionView = false

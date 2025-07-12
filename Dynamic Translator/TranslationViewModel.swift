@@ -20,6 +20,7 @@ class TranslationViewModel: ObservableObject {
     private let translationService = TranslationService()
     private let elevenLabsService = ElevenLabsService()
     let audioRecorder = AudioRecorder()
+    private let conversationHistory: ConversationHistory  // New: Injected history for saving entries
     
     // MARK: - Constants
     let availableLanguages = [
@@ -32,7 +33,8 @@ class TranslationViewModel: ObservableObject {
     
     let availableModes = ["Manual", "Auto", "Conversational", "Transcription"]
     
-    init() {
+    init(conversationHistory: ConversationHistory) {  // New: Accept history in init
+        self.conversationHistory = conversationHistory
         setupAudioRecorder()
     }
     
@@ -180,8 +182,25 @@ class TranslationViewModel: ObservableObject {
         case .success(let translation):
             translatedText = translation
             synthesizeSpeech(translation, in: targetLanguage)
+            
+            // New: Save successful translation to history (mirroring LiveTranscriptionView)
+            conversationHistory.addEntry(
+                originalText: originalText,
+                translatedText: translation,
+                sourceLanguage: detectedLanguage,
+                targetLanguage: targetLanguage
+            )
+            
         case .failure(let error):
             print("Translation error: \(error)")
+            
+            // New: Save failure case to history (with placeholder, like in LiveTranscriptionView)
+            conversationHistory.addEntry(
+                originalText: originalText,
+                translatedText: "Translation failed",
+                sourceLanguage: detectedLanguage,
+                targetLanguage: targetLanguage
+            )
         }
     }
     
@@ -207,7 +226,11 @@ class TranslationViewModel: ObservableObject {
     }
     
     private func restartLiveRecording() {
-        // Implementation for restarting live recording
+        // Re-setup the silence detection callback, as it's cleared on stop
+        setupSilenceDetection()
+        
+        // Restart recording in continuous mode (without clearing previous results, to maintain conversation flow)
+        audioRecorder.startRecording(withSilenceDetection: true)
     }
     
     private func handleEmptyAudio() {
